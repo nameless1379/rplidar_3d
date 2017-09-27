@@ -4,162 +4,135 @@
 #include "uart_host.h"
 #include "mpu6050.h"
 
-static uint8_t lidar_tx_start_flag = 0;
-static uint8_t rxbuf[7];
-static const uint8_t rplidar_rx_descriptor[7] = {0xa5,0x5a,0x54,0x00,0x00,0x40,0x82};
+#define  NUM_SEGMENT 3U
+#define  RXBUF_SIZE 2U
+#define  HANDSHAKE_SIZE 4U
 
-static thread_reference_t uart_timestamp = NULL;
-static uint32_t data_length = 0;
+/* Put Datas to transfer here*/
+static PIMUStruct pIMU;
 static uint32_t timestamp;
 
-static PIMUStruct pIMU;
+static uint8_t start_flag = 0;
+static const uint8_t start_seq[2] = {'a','a'};
+static const uint8_t handshake_seq[HANDSHAKE_SIZE] = {'a','b','c','d'};
+static const uint8_t size_of_segments[NUM_SEGMENT] = {2, 12, 4};
+static const uint8_t seq_start[2] = {'\r','\n'};
+static uint8_t* segments[NUM_SEGMENT];
 
-//static uint8_t rxbuf_fifo[5];
-//static uint8_t rxchar_in_queue = 0;
+static thread_t* uart_host_thread_p;
+static thread_reference_t uart_host_thread_handler = NULL;
+static uint8_t rxbuf[RXBUF_SIZE];
 
-static uint8_t compare_descriptor(void)
+static uint8_t compare_input(void)
 {
   uint8_t i;
-  for (i = 0; i < 7U; i++)
-    if(rxbuf[i] != rplidar_rx_descriptor[i])
+  for (i = 0; i < RXBUF_SIZE; i++)
+    if(rxbuf[i] != start_seq[i])
       return false;
   return true;
 }
 
 /*
- * This callback is invoked when a character is received but the application
- * was not ready to receive it, the character is passed as parameter.
+ * This callback is invoked when a transmission has physically completed.
  */
-static void rxchar(UARTDriver *uartp, uint16_t c)
+static void txend2(UARTDriver *uartp)
 {
-//  rxbuf_fifo[rxchar_in_queue++] = (uint8_t)c;
-  while(!(*UART_LIDAR.usart->SR | USART_SR_TXE));
-
-  *UART_LIDAR.usart->DR = (uint8_t)c;
-  *UART_LIDAR.usart->CR1 |= USART_CR1_TE;
-
-  if(!lidar_tx_start_flag)
+  if(uartp == UART_TO_HOST)
   {
-    if(c == 0xa5)
-    {
-      lidar_tx_start_flag = 1;
-      rxbuf[0] = (uint8_t)c;
-    }
-
-    data_length = 0;
+    chSysLockFromISR();
+    chThdResumeI(&uart_host_thread_handler, MSG_OK);
+    chSysUnlockFromISR();
   }
-  else if(lidar_tx_start_flag == 1)
-  {
-    rxbuf[data_length] = (uint8_t)c;
-    if(data_length == 6)
-    {
-      if(compare_descriptor())
-        lidar_tx_start_flag = 2;
-
-      data_length = 0;
-    }
-  }
-  else
-  {
-    if(data_length == 83)
-    {
-      timestamp = chVTGetSystemTimeX();
-      palTogglePad(GPIOD,GPIOD_LED4);
-
-      chSysLockFromISR();
-      chThdResumeI(&uart_timestamp,MSG_OK);
-      chSysUnlockFromISR();
-
-      data_length = 0;
-    }
-  }
-
-  data_length++;
 }
-
-static void rxerr(UARTDriver *uartp, uartflags_t e)
-{
-  palTogglePad(GPIOD,GPIOD_LED5);
-}
-
 
 /*
- * UART driver configuration structure.
+ * This callback is invoked when a receive buffer has been completely written.
  */
-static UARTConfig uart_cfg = {
-  NULL,
-  NULL,
-  NULL,
-  rxchar,
-  rxerr,
-  115200,
-  0,
-  0,
-  0
-};
+static void rxend(UARTDriver *uartp) {
+
+  if(uartp == UART_TO_HOST)
+  {
+    if(compare_input())
+      start_flag = 1;
+    else
+    {
+      palTogglePad(GPIOD,GPIOD_LED5);
+    }
+
+    chSysLockFromISR();
+    chThdResumeI(&uart_host_thread_handler, MSG_OK);
+    chSysUnlockFromISR();
+  }
+}
 
 /*
  * UART driver configuration structure.
  */
 static UARTConfig uart_cfg_host = {
-  NULL,NULL,NULL,NULL,NULL,
+  NULL,txend2,rxend,NULL,NULL,
   115200,
   0,
   0,
   0
 };
 
-static THD_WORKING_AREA(uart_timestamp_thread_wa,256);
-static THD_FUNCTION(uart_timestamp_thread, p)
-{
-  (void)p;
-  chRegSetThreadName("uart timestamp");
-  uint8_t i;
-  uint32_t timestamp;
-
-  while(true)
-  {
-    chSysLock();
-    chThdSuspendS(&uart_timestamp);
-    chSysUnlock();
-
-    chThdSleepMicroseconds(100);
-    timestamp = chVTGetSystemTimeX();
-    
-    uartStopSend(UART_LIDAR);
-    uartStartSend(UART_LIDAR, 4, &timestamp);
-  }
-}
-
+#define   HOST_TRANSMIT_PERIOD  1000000/HOST_TRANSMIT_FREQ
 static THD_WORKING_AREA(uart_host_thread_wa, 256);
 static THD_FUNCTION(uart_host_thread, p)
 {
   (void)p;
   chRegSetThreadName("uart host transmitter");
-  pIMU = mpu6050_get();
 
   uartStart(UART_TO_HOST, &uart_cfg_host);
-  dmaStreamRelease(*UART_TO_HOST.dmarx);
+  segments[0] = seq_start;
+  segments[1] = pIMU->euler_angle;
+  segments[2] = &timestamp;
 
-  while(true)
+  uint32_t tick = chVTGetSystemTimeX();
+  uint8_t i;
+
+  while(!start_flag)
   {
-    uint32_t tick = chVTGetSystemTimeX();
+    uartStartReceive(UART_TO_HOST, RXBUF_SIZE, rxbuf);
 
-    uartStopSend(UART_TO_HOST);
-    uartStartSend(UART_TO_HOST, 24, pIMU->accelData);
+    chSysLock();
+    chThdSuspendS(&uart_host_thread_handler);
+    chSysUnlock();
+  }
 
-    chThdSleepMilliseconds(50);
+  uartStopSend(UART_TO_HOST);
+  uartStartSend(UART_TO_HOST, HANDSHAKE_SIZE, handshake_seq);
+  chSysLock();
+  chThdSuspendS(&uart_host_thread_handler);
+  chSysUnlock();
+
+  while(!chThdShouldTerminateX())
+  {
+    tick += US2ST(MPU6050_UPDATE_PERIOD);
+    if(chVTGetSystemTimeX() < tick)
+      chThdSleepUntil(tick);
+    else
+    {
+      tick = chVTGetSystemTimeX();
+    }
+
+    timestamp = chVTGetSystemTimeX();
+    for (i = 0; i < NUM_SEGMENT; i++)
+    {
+      uartStopSend(UART_TO_HOST);
+      uartStartSend(UART_TO_HOST, size_of_segments[i], segments[i]);
+
+      chSysLock();
+      chThdSuspendS(&uart_host_thread_handler);
+      chSysUnlock();
+    }
   }
 }
 
 void uart_host_init(void)
 {
-  uartStart(UART_LIDAR, &uart_cfg);
-
-  chThdCreateStatic(uart_timestamp_thread_wa,sizeof(uart_timestamp_thread_wa),
-                    NORMALPRIO, uart_timestamp_thread, NULL);
-
-  chThdCreateStatic(uart_host_thread_wa, sizeof(uart_host_thread_wa),
-                   NORMALPRIO,
-                   uart_host_thread, NULL);
+  pIMU = mpu6050_get();
+  uart_host_thread_p = chThdCreateStatic(uart_host_thread_wa, sizeof(uart_host_thread_wa),
+                       NORMALPRIO,
+                       uart_host_thread, NULL);
 }

@@ -16,6 +16,14 @@ static void cmd_app1(BaseSequentialStream * chp, int argc, char *argv[]){
   (void) argc,argv;
 
   chprintf(chp,"app1\r\n");
+  float test[15];
+  flashRead(IMU_CAL_FLASH,test,60);
+  test[12] = -test[12];
+  test[13] = -test[13];
+  test[14] = -test[14];
+  flashSectorErase(flashSectorAt(IMU_CAL_FLASH));
+  flashWrite(IMU_CAL_FLASH,test,60);
+
 }
 
 static void cmd_calibration(BaseSequentialStream * chp, int argc, char *argv[])

@@ -15,8 +15,8 @@
 */
 #include "main.h"
 
-static PIMUStruct pIMU;
 static BaseSequentialStream* chp = (BaseSequentialStream*)SERIAL_CMD;
+static PIMUStruct pIMU;
 static const IMUConfigStruct imu1_conf = {&I2CD1, MPU6050_I2C_ADDR_A0_LOW,
    MPU6050_ACCEL_SCALE_8G, MPU6050_GYRO_SCALE_1000};
 
@@ -29,11 +29,11 @@ static THD_FUNCTION(Attitude_thread, p)
   PIMUStruct pIMU_1 = (PIMUStruct)p;
 
   chThdSleepMilliseconds(100);
-  errorCode = mpu6050Init(pIMU_1, &imu1_conf);
+  errorCode = attitude_imu_init(pIMU_1, &imu1_conf);
 
   while(errorCode)
   {
-    chprintf(chp,"IMU Init Failed: %d\r\n", errorCode);
+    chprintf(chp,"IMU Init Failed: %d", errorCode);
     chThdSleepMilliseconds(500);
   }
 
@@ -48,11 +48,10 @@ static THD_FUNCTION(Attitude_thread, p)
       tick = chVTGetSystemTimeX();
     }
 
-    errorCode = mpu6050GetData(pIMU_1);
-    while(errorCode)
+    errorCode = attitude_update(pIMU_1);
+    if(errorCode)
     {
-      chprintf(chp,"IMU Reading Error %d\r\n", errorCode);
-      chThdSleepMilliseconds(500);
+      chprintf(chp,"IMU Reading Error %d", errorCode);
     }
 
     if(pIMU_1->accelerometer_not_calibrated || pIMU_1->gyroscope_not_calibrated)

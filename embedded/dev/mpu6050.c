@@ -104,10 +104,6 @@ static void imuStructureInit(PIMUStruct pIMU, const IMUConfigStruct* const imu_c
   pIMU->accelBias[1] = 0.0f;
   pIMU->accelBias[2] = 0.0f;
 
-  pIMU->gyroBias[0] = 0.0f;
-  pIMU->gyroBias[1] = 0.0f;
-  pIMU->gyroBias[2] = 0.0f;
-
   float flash_test;
   flashRead(IMU_CAL_FLASH, &flash_test, 4);
   if(isfinite(flash_test))
@@ -157,15 +153,6 @@ static void trans_accel_offset(PIMUStruct pIMU, float accelData[3])
   matrix33_multiply_vector3(pIMU->accelT, accelData_temp, pIMU->accelData);
 }
 
-static void trans_gyro_offset(PIMUStruct pIMU, float gyroData[3])
-{
-  float accelData_temp[3];
-
-  pIMU->gyroData[X] = gyroData[X] + pIMU->gyroBias[X];
-  pIMU->gyroData[Y] = gyroData[Y] + pIMU->gyroBias[Y];
-  pIMU->gyroData[Z] = gyroData[Z] + pIMU->gyroBias[Z];
-}
-
 /**
  * @brief  Reads new data from the sensor
  * @param  pIMU - pointer to IMU data structure;
@@ -178,14 +165,11 @@ uint8_t mpu6050GetData(PIMUStruct pIMU)
   pIMU->dt = ST2US(tcurr - pIMU->tprev)/1000000.0f;
   pIMU->tprev = tcurr;
 
-  float accelData[3],gyroData[3];
-  uint8_t error =  mpu6050GetDataRaw(pIMU, accelData, gyroData);
+  float accelData[3];
+  uint8_t error =  mpu6050GetDataRaw(pIMU, accelData, pIMU->gyroData);
 
   if(!error)
-  {
     trans_accel_offset(pIMU, accelData);
-    trans_gyro_offset(pIMU, gyroData);
-  }
 
   return error;
 }
