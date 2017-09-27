@@ -8,6 +8,7 @@ static uint8_t lidar_tx_start_flag = 0;
 static uint8_t rxbuf[7];
 static const uint8_t rplidar_rx_descriptor[7] = {0xa5,0x5a,0x54,0x00,0x00,0x40,0x82};
 
+static thread_reference_t uart_timestamp = NULL;
 static uint32_t data_length = 0;
 static uint32_t timestamp;
 
@@ -62,10 +63,12 @@ static void rxchar(UARTDriver *uartp, uint16_t c)
   {
     if(data_length == 83)
     {
+      timestamp = chVTGetSystemTimeX();
       palTogglePad(GPIOD,GPIOD_LED4);
 
-      //timestamp = chVTGetSystemTimeX();
-      //uartStartSend(UART_LIDAR, 4, &timestamp);
+      chSysLockFromISR();
+      chThdResumeI(&uart_timestamp,MSG_OK);
+      chSysUnlockFromISR();
 
       data_length = 0;
     }
@@ -73,6 +76,12 @@ static void rxchar(UARTDriver *uartp, uint16_t c)
 
   data_length++;
 }
+
+static void rxerr(UARTDriver *uartp, uartflags_t e)
+{
+  palTogglePad(GPIOD,GPIOD_LED5);
+}
+
 
 /*
  * UART driver configuration structure.
@@ -82,7 +91,7 @@ static UARTConfig uart_cfg = {
   NULL,
   NULL,
   rxchar,
-  NULL,
+  rxerr,
   115200,
   0,
   0,
@@ -100,6 +109,28 @@ static UARTConfig uart_cfg_host = {
   0
 };
 
+static THD_WORKING_AREA(uart_timestamp_thread_wa,256);
+static THD_FUNCTION(uart_timestamp_thread, p)
+{
+  (void)p;
+  chRegSetThreadName("uart timestamp");
+  uint8_t i;
+  uint32_t timestamp;
+
+  while(true)
+  {
+    chSysLock();
+    chThdSuspendS(&uart_timestamp);
+    chSysUnlock();
+
+    chThdSleepMicroseconds(100);
+    timestamp = chVTGetSystemTimeX();
+    
+    uartStopSend(UART_LIDAR);
+    uartStartSend(UART_LIDAR, 4, &timestamp);
+  }
+}
+
 static THD_WORKING_AREA(uart_host_thread_wa, 256);
 static THD_FUNCTION(uart_host_thread, p)
 {
@@ -108,15 +139,16 @@ static THD_FUNCTION(uart_host_thread, p)
   pIMU = mpu6050_get();
 
   uartStart(UART_TO_HOST, &uart_cfg_host);
+  dmaStreamRelease(*UART_TO_HOST.dmarx);
 
   while(true)
   {
     uint32_t tick = chVTGetSystemTimeX();
 
+    uartStopSend(UART_TO_HOST);
     uartStartSend(UART_TO_HOST, 24, pIMU->accelData);
-    uartStartSend(UART_TO_HOST, 4, &tick);
 
-    chThdSleepMilliseconds(5);
+    chThdSleepMilliseconds(50);
   }
 }
 
@@ -124,7 +156,10 @@ void uart_host_init(void)
 {
   uartStart(UART_LIDAR, &uart_cfg);
 
+  chThdCreateStatic(uart_timestamp_thread_wa,sizeof(uart_timestamp_thread_wa),
+                    NORMALPRIO, uart_timestamp_thread, NULL);
+
   chThdCreateStatic(uart_host_thread_wa, sizeof(uart_host_thread_wa),
-                    NORMALPRIO,
-                    uart_host_thread, NULL);
+                   NORMALPRIO,
+                   uart_host_thread, NULL);
 }
