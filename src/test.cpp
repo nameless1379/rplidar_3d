@@ -83,12 +83,13 @@ int main(int argc, char * argv[])
 
         if (op_result == RESULT_OK)
         {
-          if(nodes[0].imu_euler_angles[0] != 100.0f)
+          if(nodes[0].imu_euler_angles[count - 1] != 100.0f)
           {
             printf("====================\n");
-            printf("Roll: %4f\n", nodes[0].imu_euler_angles[0] * 180.0f/M_PI);
-            printf("Pitch:%4f\n", nodes[0].imu_euler_angles[1] * 180.0f/M_PI);
-            printf("Yaw:  %4f\n", nodes[0].imu_euler_angles[2] * 180.0f/M_PI);
+            printf("Cached packets: %d\n", count);
+            printf("Roll: %4f\n", nodes[count - 1].imu_euler_angles[0] * 180.0f/M_PI);
+            printf("Pitch:%4f\n", nodes[count - 1].imu_euler_angles[1] * 180.0f/M_PI);
+            printf("Yaw:  %4f\n", nodes[count - 1].imu_euler_angles[2] * 180.0f/M_PI);
             printf("====================\n");
           }
           else

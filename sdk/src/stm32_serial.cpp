@@ -137,7 +137,8 @@ u_result stm32_serial::_waitNode(stm32_serial_packet_t* node, _u32 timeout)
 
 u_result stm32_serial::_waitPacket(stm32_serial_packet_t * nodebuffer, size_t & count, _u32 timeout)
 {
-    if (!_isConnected) {
+    if (!_isConnected)
+    {
         count = 0;
         return RESULT_OPERATION_FAIL;
     }
@@ -147,9 +148,11 @@ u_result stm32_serial::_waitPacket(stm32_serial_packet_t * nodebuffer, size_t & 
     _u32     waitTime;
     u_result ans;
 
-    while ((waitTime = getms() - startTs) <= timeout && recvNodeCount < count) {
+    while ((waitTime = getms() - startTs) <= timeout && recvNodeCount < count)
+    {
         stm32_serial_packet_t node;
-        if (IS_FAIL(ans = _waitNode(&node, timeout - waitTime))) {
+        if (IS_FAIL(ans = _waitNode(&node, timeout - waitTime)))
+        {
             return ans;
         }
 
@@ -164,37 +167,29 @@ u_result stm32_serial::_waitPacket(stm32_serial_packet_t * nodebuffer, size_t & 
 
 u_result stm32_serial::_cachePacket(void)
 {
-    stm32_serial_packet_t                           local_buf[128];
-    size_t                                             count = 128;
-    stm32_serial_packet_t         local_packets[MAX_STM32_PACKETS];
-    size_t                                   packet_count = 0;
-    u_result                                 ans;
-    memset(local_packets, 0, sizeof(local_packets));
-
-    _waitPacket(local_buf, count); // // always discard the first data since it may be incomplete
+    u_result                      ans;
 
     while(_rxStarted)
     {
-        if (IS_FAIL(ans=_waitPacket(local_buf, count))) {
-            if (ans != RESULT_OPERATION_TIMEOUT) {
-                _rxStarted = false;
-                return RESULT_OPERATION_FAIL;
-            }
-        }
+      stm32_serial_packet_t node;
+      if (IS_FAIL(ans = _waitNode(&node, DEFAULT_TIMEOUT)))
+      {
+        return ans;
+      }
+      _lock.lock();
 
-        for (size_t pos = 0; pos < count; ++pos)
-        {
-            _lock.lock();
-            memcpy(_cached_packets_buf, local_packets, packet_count*sizeof(stm32_serial_packet_t));
-            _cached_packets_count = packet_count;
-            _dataEvt.set();
-            _lock.unlock();
+      //Prevent overflow
+      if(_cached_packets_count >= MAX_STM32_PACKETS)
+        _cached_packets_count = MAX_STM32_PACKETS - 1;
 
-            packet_count = 0;
+      stm32_serial_packet_t* _cached_packets_buf_dest =
+          _cached_packets_buf + _cached_packets_count;
+      memcpy(_cached_packets_buf_dest, &node, sizeof(stm32_serial_packet_t));
+      _cached_packets_count++;
 
-            local_packets[packet_count++] = local_buf[pos];
-            if (packet_count == MAX_STM32_PACKETS) packet_count-=1; // prevent overflow
-        }
+      _dataEvt.set();
+      _lock.unlock();
+
     }
     _rxStarted = false;
     return RESULT_OK;
