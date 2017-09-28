@@ -15,8 +15,8 @@
 
 typedef struct {
   _u16 sync;
-  float imu_euler_angles[3];
-  _u32 timeStamp = 0;
+  float imu_data[3];
+  _u32 timeStamp;
 } __attribute__((packed)) stm32_serial_packet_t;
 
 class stm32_serial {

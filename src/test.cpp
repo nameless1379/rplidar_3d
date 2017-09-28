@@ -34,8 +34,32 @@
 
 #include "ros/ros.h"
 
+#include "geometry_msgs/QuaternionStamped.h"
 #include "stm32_serial.h"
 #include "rptypes.h"
+
+/**
+  * TODO: Modify stm32 to transmit quaternion
+  *       call this function to publish attitude data
+  */
+void publish_imu_msg(ros::Publisher *pub, stm32_serial_packet_t *node, std::string frame_id)
+{
+    geometry_msgs::QuaternionStamped imu_msg;
+
+    static uint32_t packet_count = 0;
+    ros::Time timeStamp((double)(node->timeStamp)/1000);
+
+    imu_msg.header.seq = packet_count++;
+    imu_msg.header.stamp = timeStamp;
+    imu_msg.header.frame_id = frame_id;
+
+    imu_msg.quaternion.x = (double)(node->imu_data[0]);
+    imu_msg.quaternion.y = (double)(node->imu_data[1]);
+    imu_msg.quaternion.z = (double)(node->imu_data[2]);
+    imu_msg.quaternion.w = (double)(node->imu_data[3]);
+
+    pub->publish(imu_msg);
+}
 
 int main(int argc, char * argv[])
 {
@@ -72,8 +96,6 @@ int main(int argc, char * argv[])
     serial->start_rx(DEFAULT_TIMEOUT);
     printf("Started receiving data...\n");
 
-    ros::Rate r(1);
-
     while (ros::ok())
     {
         stm32_serial_packet_t nodes[360*2];
@@ -81,26 +103,14 @@ int main(int argc, char * argv[])
 
         op_result = serial->grabPacket(nodes, count, DEFAULT_TIMEOUT);
 
-        if (op_result == RESULT_OK)
+        if (op_result != RESULT_OK ||
+          nodes[0].imu_data[count - 1] == 100.0f)
         {
-          if(nodes[0].imu_euler_angles[count - 1] != 100.0f)
-          {
-            printf("====================\n");
-            printf("Cached packets: %d\n", count);
-            printf("Roll: %4f\n", nodes[count - 1].imu_euler_angles[0] * 180.0f/M_PI);
-            printf("Pitch:%4f\n", nodes[count - 1].imu_euler_angles[1] * 180.0f/M_PI);
-            printf("Yaw:  %4f\n", nodes[count - 1].imu_euler_angles[2] * 180.0f/M_PI);
-            printf("====================\n");
-          }
-          else
-          {
-            printf("====================\n");
-            printf("Invalid imu data!\n");
-            printf("====================\n");
-          }
+          printf("Failed to obtain imu data!\n");
+          return -1;
         }
 
-        r.sleep();
+        ros::spinOnce();
     }
 
     delete serial;

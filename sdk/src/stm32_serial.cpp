@@ -205,7 +205,8 @@ u_result stm32_serial::start_rx(_u32 timeout)
 
         _rxStarted = true;
         _cachethread = CLASS_THREAD(stm32_serial, _cachePacket);
-        if (_cachethread.getHandle() == 0) {
+        if (_cachethread.getHandle() == 0)
+        {
             return RESULT_OPERATION_FAIL;
         }
     }
