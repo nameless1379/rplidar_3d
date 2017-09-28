@@ -10,18 +10,27 @@
 
 #include "stm32_serial.h"
 
+stm32_serial::stm32_serial(): _isConnected(false),_rxStarted(false),_cached_packets_count(0)
+{
+  _rxtx = rp::hal::serial_rxtx::CreateRxTx();
+}
+
 u_result stm32_serial::connect(const char * port_path, _u32 baudrate)
 {
     if (isConnected()) return RESULT_ALREADY_DONE;
 
-    if (!_rxtx) return RESULT_INSUFFICIENT_MEMORY;
+    if (!_rxtx)
+    {
+      printf("wtf\n" );
+      return RESULT_INSUFFICIENT_MEMORY;
+    }
+
     {
         rp::hal::AutoLocker l(_lock);
 
         // establish the serial connection...
-        if (!_rxtx->bind(port_path, baudrate)  ||  !_rxtx->open()) {
+        if (!_rxtx->bind(port_path, baudrate)  ||  !_rxtx->open())
             return RESULT_INVALID_DATA;
-        }
 
         _rxtx->flush(0);
     }
@@ -40,6 +49,35 @@ void stm32_serial::disconnect()
 bool stm32_serial::isConnected()
 {
     return _isConnected;
+}
+
+u_result stm32_serial::_transmit(_u8* txbuf, _u16 size)
+{
+    if (!_isConnected)
+      return RESULT_OPERATION_FAIL;
+
+    // send header first
+    _rxtx->senddata(txbuf, size) ;
+    return RESULT_OK;
+}
+
+void stm32_serial::transmit_test()
+{
+    _u8 txbuf[2] = {0xa5,0x5a};
+    _u32 timeStamp = getms();
+
+    _transmit(txbuf, 2);
+    _transmit((_u8*)&timeStamp, 4);
+
+    stm32_serial_packet_t node;
+    if(IS_FAIL(_waitNode(&node, DEFAULT_TIMEOUT)))
+    {
+      printf("wtf\n");
+      return;
+    }
+    printf("send time:%d\n",timeStamp);
+    printf("receive time:%d\n",node.timeStamp);
+    printf("sync error:%d\n",node.timeStamp - timeStamp);
 }
 
 u_result stm32_serial::_waitNode(stm32_serial_packet_t* node, _u32 timeout)
@@ -130,11 +168,11 @@ u_result stm32_serial::_cachePacket(void)
 
     _waitPacket(local_buf, count); // // always discard the first data since it may be incomplete
 
-    while(_inited)
+    while(_rxStarted)
     {
         if (IS_FAIL(ans=_waitPacket(local_buf, count))) {
             if (ans != RESULT_OPERATION_TIMEOUT) {
-                _inited = false;
+                _rxStarted = false;
                 return RESULT_OPERATION_FAIL;
             }
         }
@@ -153,20 +191,19 @@ u_result stm32_serial::_cachePacket(void)
             if (packet_count == MAX_STM32_PACKETS) packet_count-=1; // prevent overflow
         }
     }
-    _inited = false;
+    _rxStarted = false;
     return RESULT_OK;
 }
 
-u_result stm32_serial::init(_u32 timeout)
+u_result stm32_serial::start_rx(_u32 timeout)
 {
     u_result ans;
     if (!isConnected()) return RESULT_OPERATION_FAIL;
-    if (_inited) return RESULT_ALREADY_DONE;
-
+    if (_rxStarted) return RESULT_ALREADY_DONE;
     {
         rp::hal::AutoLocker l(_lock);
 
-        _inited = true;
+        _rxStarted = true;
         _cachethread = CLASS_THREAD(stm32_serial, _cachePacket);
         if (_cachethread.getHandle() == 0) {
             return RESULT_OPERATION_FAIL;

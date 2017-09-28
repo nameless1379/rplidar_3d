@@ -43,25 +43,33 @@ int main(int argc, char * argv[])
 
     std::string serial_port;
     int serial_baudrate = 115200;
-    std::string frame_id;
-    bool inverted = false;
-    bool angle_compensate = true;
 
     ros::NodeHandle nh;
-    
-    stm32_serial serial;
+    ros::NodeHandle nh_private("~");
+
+    nh_private.param<std::string>("serial_port", serial_port, "/dev/ttyUSB0");
+    nh_private.param<int>("serial_baudrate", serial_baudrate, 115200);
+
+    stm32_serial* serial = new stm32_serial;
+
+    printf("3D scanning RPLIDAR by Edward ZHANG\n");
+
     u_result op_result;
     // make connection...
-    if (IS_FAIL(serial.connect(serial_port.c_str(), (_u32)serial_baudrate))) {
+
+    if (IS_FAIL(serial->connect(serial_port.c_str(), (_u32)serial_baudrate))) {
         fprintf(stderr, "Error, cannot bind to the specified serial port %s.\n"
             , serial_port.c_str());
         return -1;
     }
 
-    serial.init(DEFAULT_TIMEOUT);
+    serial->transmit_test();
 
-    while (ros::ok()) {
+    printf("Sent data string\n");
 
+    while (ros::ok())
+    {
+/*
         stm32_serial_packet_t nodes[360*2];
         size_t   count = 720;
 
@@ -69,17 +77,13 @@ int main(int argc, char * argv[])
 
         if (op_result == RESULT_OK)
         {
-          printf("AccelX:%f\n", nodes[count].imu_accelData[0]);
-          printf("AccelX:%f\n", nodes[count].imu_accelData[1]);
-          printf("AccelX:%f\n", nodes[count].imu_accelData[2]);
-          printf("GyroX:%f\n", nodes[count].imu_gyroData[0]);
-          printf("GyroY:%f\n", nodes[count].imu_gyroData[1]);
-          printf("GyroZ:%f\n", nodes[count].imu_gyroData[2]);
           printf("Time:%d\n", nodes[count].timeStamp);
         }
-
-        ros::spinOnce();
+*/
+        ros::spin();
     }
+
+    delete serial;
 
     return 0;
 }
