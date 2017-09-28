@@ -66,6 +66,8 @@ typedef struct tagIMUStruct {
   float gyro_psc;
 
   uint8_t inited;
+  uint8_t data_invalid;
+  uint16_t invalid_data_counter;
   uint32_t tprev;
   float dt;
   thread_reference_t imu_Thd;

@@ -3,7 +3,7 @@
 
 #define UART_TO_HOST   &UARTD1
 
-#define  HOST_TRANSMIT_FREQ 300U
+#define  HOST_TRANSMIT_FREQ 400U
 
 
 void uart_host_init(void);

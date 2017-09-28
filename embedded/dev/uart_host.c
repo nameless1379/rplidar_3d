@@ -6,17 +6,16 @@
 
 #define  NUM_SEGMENT 3U
 #define  RXBUF_SIZE 6U
-#define  HANDSHAKE_SIZE 2U
+#define  START_SEQ_SIZE 2U
 
 /* Put Datas to transfer here*/
 static PIMUStruct pIMU;
 static uint32_t timestamp;
 
 static uint8_t start_flag = 0;
-static const uint8_t start_seq[2] = {0xa5, 0x5a};
-static const uint8_t handshake_seq[HANDSHAKE_SIZE] = {0xa5, 0x5a};
-static const uint8_t size_of_segments[NUM_SEGMENT] = {2, 12, 4};
-static const uint8_t seq_start[2] = {'\r','\n'};
+static const uint8_t start_seq[START_SEQ_SIZE] = {0xa5, 0x5a};
+static const float imu_data_invalid_seq[3] = {100.0f, 100.0f, 100.0f};
+static const uint8_t size_of_segments[NUM_SEGMENT] = {START_SEQ_SIZE, 12, 4};
 static uint8_t* segments[NUM_SEGMENT];
 
 static thread_t* uart_host_thread_p;
@@ -81,7 +80,7 @@ static inline void uart_host_send(const uint8_t* txbuf, const uint8_t size)
   chSysUnlock();
 }
 
-#define   HOST_TRANSMIT_PERIOD  1000000/HOST_TRANSMIT_FREQ
+#define  HOST_TRANSMIT_PERIOD  1000000/HOST_TRANSMIT_FREQ
 static THD_WORKING_AREA(uart_host_thread_wa, 256);
 static THD_FUNCTION(uart_host_thread, p)
 {
@@ -89,7 +88,7 @@ static THD_FUNCTION(uart_host_thread, p)
   chRegSetThreadName("uart host transmitter");
 
   uartStart(UART_TO_HOST, &uart_cfg_host);
-  segments[0] = seq_start;
+  segments[0] = start_seq;
   segments[1] = pIMU->euler_angle;
   segments[2] = &timestamp;
 
@@ -108,14 +107,16 @@ static THD_FUNCTION(uart_host_thread, p)
   uint32_t time_host = *((uint32_t*)(rxbuf+2));
   uint32_t time_curr = ST2MS(chVTGetSystemTimeX());
   int32_t timestamp_sync = time_host - time_curr;
+  timestamp = ST2MS(chVTGetSystemTimeX()) + timestamp_sync;
 
-  uart_host_send(handshake_seq, HANDSHAKE_SIZE);
-  uint32_t timestamp = ST2MS(chVTGetSystemTimeX()) + timestamp_sync;
-  uart_host_send(&timestamp, 4);
+  for (i = 0; i < NUM_SEGMENT; i++)
+    uart_host_send(segments[i], size_of_segments[i]);
+
+  chThdSleepMilliseconds(100);
 
   while(!chThdShouldTerminateX())
   {
-    tick += US2ST(MPU6050_UPDATE_PERIOD);
+    tick += US2ST(HOST_TRANSMIT_PERIOD);
     if(chVTGetSystemTimeX() < tick)
       chThdSleepUntil(tick);
     else
@@ -123,7 +124,10 @@ static THD_FUNCTION(uart_host_thread, p)
       tick = chVTGetSystemTimeX();
     }
 
-    timestamp = chVTGetSystemTimeX();
+    if(pIMU->data_invalid)
+      segments[1] = (uint8_t*)imu_data_invalid_seq;
+
+    timestamp = ST2MS(chVTGetSystemTimeX()) + timestamp_sync;
     for (i = 0; i < NUM_SEGMENT; i++)
       uart_host_send(segments[i], size_of_segments[i]);
   }

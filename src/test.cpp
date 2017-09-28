@@ -58,29 +58,48 @@ int main(int argc, char * argv[])
     // make connection...
 
     if (IS_FAIL(serial->connect(serial_port.c_str(), (_u32)serial_baudrate))) {
-        fprintf(stderr, "Error, cannot bind to the specified serial port %s.\n"
-            , serial_port.c_str());
-        return -1;
+      fprintf(stderr, "Error, cannot bind to the specified serial port %s.\n"
+          , serial_port.c_str());
+      return -1;
     }
 
-    serial->transmit_test();
+    if(IS_FAIL(serial->transmit_handshake()))
+    {
+      fprintf(stderr, "Error, failed to establish transmission with STM32\n");
+      return -1;
+    }
 
-    printf("Sent data string\n");
+    serial->start_rx(DEFAULT_TIMEOUT);
+    printf("Started receiving data...\n");
+
+    ros::Rate r(1);
 
     while (ros::ok())
     {
-/*
         stm32_serial_packet_t nodes[360*2];
         size_t   count = 720;
 
-        op_result = serial.grabPacket(nodes, count, DEFAULT_TIMEOUT);
+        op_result = serial->grabPacket(nodes, count, DEFAULT_TIMEOUT);
 
         if (op_result == RESULT_OK)
         {
-          printf("Time:%d\n", nodes[count].timeStamp);
+          if(nodes[0].imu_euler_angles[0] != 100.0f)
+          {
+            printf("====================\n");
+            printf("Roll: %4f\n", nodes[0].imu_euler_angles[0] * 180.0f/M_PI);
+            printf("Pitch:%4f\n", nodes[0].imu_euler_angles[1] * 180.0f/M_PI);
+            printf("Yaw:  %4f\n", nodes[0].imu_euler_angles[2] * 180.0f/M_PI);
+            printf("====================\n");
+          }
+          else
+          {
+            printf("====================\n");
+            printf("Invalid imu data!\n");
+            printf("====================\n");
+          }
         }
-*/
-        ros::spin();
+
+        r.sleep();
     }
 
     delete serial;

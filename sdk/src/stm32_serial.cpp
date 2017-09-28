@@ -9,6 +9,7 @@
 #endif
 
 #include "stm32_serial.h"
+#include "math.h"
 
 stm32_serial::stm32_serial(): _isConnected(false),_rxStarted(false),_cached_packets_count(0)
 {
@@ -61,7 +62,7 @@ u_result stm32_serial::_transmit(_u8* txbuf, _u16 size)
     return RESULT_OK;
 }
 
-void stm32_serial::transmit_test()
+u_result stm32_serial::transmit_handshake()
 {
     _u8 txbuf[2] = {0xa5,0x5a};
     _u32 timeStamp = getms();
@@ -72,12 +73,17 @@ void stm32_serial::transmit_test()
     stm32_serial_packet_t node;
     if(IS_FAIL(_waitNode(&node, DEFAULT_TIMEOUT)))
     {
-      printf("wtf\n");
-      return;
+      return RESULT_OPERATION_FAIL;
     }
-    printf("send time:%d\n",timeStamp);
-    printf("receive time:%d\n",node.timeStamp);
-    printf("sync error:%d\n",node.timeStamp - timeStamp);
+
+    _s32 sync_error = node.timeStamp - timeStamp;
+    printf("sync error:%d\n",sync_error);
+    if(abs(sync_error) > MAX_SYNC_ERROR)
+    {
+      return RESULT_OPERATION_FAIL;
+    }
+
+    return RESULT_OK;
 }
 
 u_result stm32_serial::_waitNode(stm32_serial_packet_t* node, _u32 timeout)
@@ -121,7 +127,6 @@ u_result stm32_serial::_waitNode(stm32_serial_packet_t* node, _u32 timeout)
           }
 
           nodeBuffer[recvPos++] = currentByte;
-
           if (recvPos == sizeof(stm32_serial_packet_t))
             return RESULT_OK;
         }

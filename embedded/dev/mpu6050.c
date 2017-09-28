@@ -165,11 +165,16 @@ uint8_t mpu6050GetData(PIMUStruct pIMU)
   pIMU->dt = ST2US(tcurr - pIMU->tprev)/1000000.0f;
   pIMU->tprev = tcurr;
 
-  float accelData[3];
-  uint8_t error =  mpu6050GetDataRaw(pIMU, accelData, pIMU->gyroData);
+  float accelData[3],gyroData[3];
+  uint8_t error =  mpu6050GetDataRaw(pIMU, accelData, gyroData);
 
   if(!error)
+  {
     trans_accel_offset(pIMU, accelData);
+    pIMU->gyroData[X] = gyroData[X];
+    pIMU->gyroData[Y] = gyroData[Y];
+    pIMU->gyroData[Z] = gyroData[Z];
+  }
 
   return error;
 }

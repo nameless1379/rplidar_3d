@@ -34,6 +34,8 @@ static THD_FUNCTION(Attitude_thread, p)
   while(errorCode)
   {
     chprintf(chp,"IMU Init Failed: %d", errorCode);
+    palSetPad(GPIOD,GPIOD_LED3);
+    pIMU->data_invalid = true;
     chThdSleepMilliseconds(500);
   }
 
@@ -49,9 +51,13 @@ static THD_FUNCTION(Attitude_thread, p)
     }
 
     errorCode = attitude_update(pIMU_1);
-    if(errorCode)
+
+    while(errorCode)
     {
+      palSetPad(GPIOD,GPIOD_LED3);
+      pIMU->data_invalid = true;
       chprintf(chp,"IMU Reading Error %d", errorCode);
+      chThdSleepMilliseconds(500);
     }
 
     if(pIMU_1->accelerometer_not_calibrated || pIMU_1->gyroscope_not_calibrated)

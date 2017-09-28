@@ -10,10 +10,12 @@
 
 #define DEFAULT_TIMEOUT  2000
 #define MAX_STM32_PACKETS 2048
+#define MAX_SYNC_ERROR  20
+
 
 typedef struct {
   _u16 sync;
-  //float imu_euler_angles[3];
+  float imu_euler_angles[3];
   _u32 timeStamp = 0;
 } __attribute__((packed)) stm32_serial_packet_t;
 
@@ -25,7 +27,7 @@ public:
   void disconnect();
   bool isConnected();
 
-  void transmit_test();
+  u_result transmit_handshake();
 
   u_result start_rx(_u32 timeout);
   u_result grabPacket(stm32_serial_packet_t * nodebuffer, size_t & count, _u32 timeout);
