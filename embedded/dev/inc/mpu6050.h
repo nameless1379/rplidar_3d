@@ -100,7 +100,6 @@ extern "C" {
   uint8_t mpu6050GetData(PIMUStruct pIMU);
 
 #ifdef __cplusplus
-}
 #endif
 
 #endif /* _MPU6050_H_ */

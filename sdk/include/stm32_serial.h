@@ -15,7 +15,7 @@
 
 typedef struct {
   _u16 sync;
-  float imu_data[3];
+  float imu_data[4];
   _u32 timeStamp;
 } __attribute__((packed)) stm32_serial_packet_t;
 
@@ -40,7 +40,6 @@ protected:
 
   u_result _transmit(_u8* const txbuf, const _u16 size);
   u_result _waitNode(stm32_serial_packet_t * node, _u32 timeout = DEFAULT_TIMEOUT);
-  u_result _waitPacket(stm32_serial_packet_t * nodebuffer, size_t & count, _u32 timeout = DEFAULT_TIMEOUT);
   u_result _cachePacket(void);
 
   rp::hal::Locker            _lock;

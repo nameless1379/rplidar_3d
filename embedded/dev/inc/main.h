@@ -8,6 +8,7 @@
 #include "mpu6050.h"
 #include "calibrate_imu.h"
 #include "attitude.h"
+#include "stepper.h"
 
 #include "flash.h"
 #include "chprintf.h"

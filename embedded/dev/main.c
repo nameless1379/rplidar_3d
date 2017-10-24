@@ -33,7 +33,7 @@ static THD_FUNCTION(Attitude_thread, p)
 
   while(errorCode)
   {
-    chprintf(chp,"IMU Init Failed: %d", errorCode);
+    //chprintf(chp,"IMU Init Failed: %d", errorCode);
     palSetPad(GPIOD,GPIOD_LED3);
     pIMU->data_invalid = true;
     chThdSleepMilliseconds(500);
@@ -86,6 +86,9 @@ int main(void) {
 
   shellStart();
   tft_init(1, CYAN,BLACK,BLACK);
+
+  stepper_init(STEPPER_CW);
+  stepper_setvelocity(2*M_PI);
 
   pIMU = mpu6050_get();
 

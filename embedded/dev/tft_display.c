@@ -49,9 +49,11 @@ void tft_write_command(uint8_t command)
 {
 	palClearPad(TFT_DC_PORT, TFT_DC_PIN);
 
+  spiAcquireBus(TFT_SPI);
   spiSelect(TFT_SPI);
   spiSend(TFT_SPI, 1, &command);
   spiUnselect(TFT_SPI);
+  spiReleaseBus(TFT_SPI);
 }
 
 /**
@@ -63,9 +65,11 @@ void tft_write_data(uint8_t data)
 {
 	palSetPad(TFT_DC_PORT, TFT_DC_PIN);
 
+  spiAcquireBus(TFT_SPI);
   spiSelect(TFT_SPI);
   spiSend(TFT_SPI, 1, &data);
   spiUnselect(TFT_SPI);
+  spiReleaseBus(TFT_SPI);
 }
 
 /**
@@ -693,7 +697,7 @@ void tft_init(uint8_t orientation, uint16_t in_bg_color,
   uint16_t in_text_color, uint16_t in_text_color_sp)
 {
   palSetPad(GPIO_CS, GPIO_Pin_CS);
-  spiAcquireBus(TFT_SPI);
+
   spiStart(TFT_SPI, &TFTSPI_cfg);
 
   tft_reset();

@@ -5,30 +5,20 @@ static THD_WORKING_AREA(Shell_thread_wa, 1024);
 
 static void cmd_print(BaseSequentialStream * chp, int argc, char *argv[]){
   (void) argc,argv;
-  PIMUStruct pIMU = mpu6050_get();
 
-  chprintf(chp,"Pitch: %f\r\n", pIMU->euler_angle[Pitch] * 180.0f/M_PI);
-  chprintf(chp,"Roll: %f\r\n", pIMU->euler_angle[Roll]* 180.0f/M_PI);
-  chprintf(chp,"Yaw: %f\r\n", pIMU->euler_angle[Yaw] * 180.0f/M_PI);
-}
-
-static void cmd_app1(BaseSequentialStream * chp, int argc, char *argv[]){
-  (void) argc,argv;
-
-  chprintf(chp,"app1\r\n");
-  float test[15];
-  flashRead(IMU_CAL_FLASH,test,60);
-  test[12] = -test[12];
-  test[13] = -test[13];
-  test[14] = -test[14];
-  flashSectorErase(flashSectorAt(IMU_CAL_FLASH));
-  flashWrite(IMU_CAL_FLASH,test,60);
-
+  chprintf(chp,"Step: %d\r\n", stepper_get_steps());
+  chprintf(chp,"Angle: %f\r\n", stepper_get_angle()*180.0f/M_PI );
 }
 
 static void cmd_calibration(BaseSequentialStream * chp, int argc, char *argv[])
 {
   PIMUStruct pIMU = mpu6050_get();
+
+  if(pIMU->data_invalid)
+  {
+    chprintf(chp,"Incorrect IMU reading!\r\n");
+    return;
+  }
 
   pIMU->gyroscope_not_calibrated = true;
   pIMU->accelerometer_not_calibrated = true;
@@ -46,8 +36,7 @@ static void cmd_calibration(BaseSequentialStream * chp, int argc, char *argv[])
 static const ShellCommand commands[] =
 {
   {"print",cmd_print},
-  {"cal",cmd_calibration},
-  {"app1",cmd_app1}
+  {"cal",cmd_calibration}
 };
 
 static const ShellConfig shell_cfg1 =

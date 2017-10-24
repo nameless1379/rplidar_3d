@@ -77,10 +77,10 @@
 
 #define GPIOB_PIN0                  0U
 #define GPIOB_PIN1                  1U
-#define GPIOB_PIN2                  2U
+#define GPIOB_MEN                  2U
 #define GPIOB_SWO                   3U
-#define GPIOB_HALL1A                  4U
-#define GPIOB_HALL1B                  5U
+#define GPIOB_MPWM                  4U
+#define GPIOB_MDIR                  5U
 #define GPIOB_UART1_TX                   6U
 #define GPIOB_UART1_RX                  7U
 #define GPIOB_MPU_SCL                  8U
@@ -415,10 +415,10 @@
  */
 #define VAL_GPIOB_MODER             (PIN_MODE_INPUT(GPIOB_PIN0) |           \
                                      PIN_MODE_INPUT(GPIOB_PIN1) |           \
-                                     PIN_MODE_INPUT(GPIOB_PIN2) |           \
+                                     PIN_MODE_OUTPUT(GPIOB_MEN) |           \
                                      PIN_MODE_INPUT(GPIOB_SWO) |        \
-                                     PIN_MODE_INPUT(GPIOB_HALL1A) |           \
-                                     PIN_MODE_INPUT(GPIOB_HALL1B) |           \
+                                     PIN_MODE_ALTERNATE(GPIOB_MPWM) |           \
+                                     PIN_MODE_ALTERNATE(GPIOB_MDIR) |           \
                                      PIN_MODE_ALTERNATE(GPIOB_UART1_TX) |        \
                                      PIN_MODE_ALTERNATE(GPIOB_UART1_RX) |           \
                                      PIN_MODE_ALTERNATE(GPIOB_MPU_SCL) |           \
@@ -431,10 +431,10 @@
                                      PIN_MODE_ALTERNATE(GPIOB_PIN15))
 #define VAL_GPIOB_OTYPER            (PIN_OTYPE_PUSHPULL(GPIOB_PIN0) |       \
                                      PIN_OTYPE_PUSHPULL(GPIOB_PIN1) |       \
-                                     PIN_OTYPE_PUSHPULL(GPIOB_PIN2) |       \
+                                     PIN_OTYPE_PUSHPULL(GPIOB_MEN) |       \
                                      PIN_OTYPE_PUSHPULL(GPIOB_SWO) |        \
-                                     PIN_OTYPE_PUSHPULL(GPIOB_HALL1A) |       \
-                                     PIN_OTYPE_PUSHPULL(GPIOB_HALL1B) |       \
+                                     PIN_OTYPE_PUSHPULL(GPIOB_MPWM) |       \
+                                     PIN_OTYPE_PUSHPULL(GPIOB_MDIR) |       \
                                      PIN_OTYPE_PUSHPULL(GPIOB_UART1_TX) |       \
                                      PIN_OTYPE_PUSHPULL(GPIOB_UART1_RX) |       \
                                      PIN_OTYPE_OPENDRAIN(GPIOB_MPU_SCL) |       \
@@ -447,10 +447,10 @@
                                      PIN_OTYPE_PUSHPULL(GPIOB_PIN15))
 #define VAL_GPIOB_OSPEEDR           (PIN_OSPEED_HIGH(GPIOB_PIN0) |          \
                                      PIN_OSPEED_HIGH(GPIOB_PIN1) |          \
-                                     PIN_OSPEED_HIGH(GPIOB_PIN2) |          \
+                                     PIN_OSPEED_HIGH(GPIOB_MEN) |          \
                                      PIN_OSPEED_HIGH(GPIOB_SWO) |           \
-                                     PIN_OSPEED_HIGH(GPIOB_HALL1A) |          \
-                                     PIN_OSPEED_HIGH(GPIOB_HALL1B) |          \
+                                     PIN_OSPEED_HIGH(GPIOB_MPWM) |          \
+                                     PIN_OSPEED_HIGH(GPIOB_MDIR) |          \
                                      PIN_OSPEED_HIGH(GPIOB_UART1_TX) |           \
                                      PIN_OSPEED_HIGH(GPIOB_UART1_RX) |          \
                                      PIN_OSPEED_HIGH(GPIOB_MPU_SCL) |          \
@@ -463,10 +463,10 @@
                                      PIN_OSPEED_HIGH(GPIOB_PIN15))
 #define VAL_GPIOB_PUPDR             (PIN_PUPDR_FLOATING(GPIOB_PIN0) |         \
                                      PIN_PUPDR_FLOATING(GPIOB_PIN1) |         \
-                                     PIN_PUPDR_FLOATING(GPIOB_PIN2) |         \
+                                     PIN_PUPDR_PULLDOWN(GPIOB_MEN) |         \
                                      PIN_PUPDR_FLOATING(GPIOB_SWO) |        \
-                                     PIN_PUPDR_FLOATING(GPIOB_HALL1A) |         \
-                                     PIN_PUPDR_FLOATING(GPIOB_HALL1B) |         \
+                                     PIN_PUPDR_FLOATING(GPIOB_MPWM) |         \
+                                     PIN_PUPDR_FLOATING(GPIOB_MDIR) |         \
                                      PIN_PUPDR_PULLUP(GPIOB_UART1_TX) |        \
                                      PIN_PUPDR_PULLUP(GPIOB_UART1_RX) |         \
                                      PIN_PUPDR_PULLUP(GPIOB_MPU_SCL) |         \
@@ -479,10 +479,10 @@
                                      PIN_PUPDR_PULLUP(GPIOB_PIN15))
 #define VAL_GPIOB_ODR               (PIN_ODR_HIGH(GPIOB_PIN0) |             \
                                      PIN_ODR_HIGH(GPIOB_PIN1) |             \
-                                     PIN_ODR_HIGH(GPIOB_PIN2) |             \
+                                     PIN_ODR_HIGH(GPIOB_MEN) |             \
                                      PIN_ODR_HIGH(GPIOB_SWO) |              \
-                                     PIN_ODR_HIGH(GPIOB_HALL1A) |             \
-                                     PIN_ODR_HIGH(GPIOB_HALL1B) |             \
+                                     PIN_ODR_HIGH(GPIOB_MPWM) |             \
+                                     PIN_ODR_HIGH(GPIOB_MDIR) |             \
                                      PIN_ODR_HIGH(GPIOB_UART1_TX) |              \
                                      PIN_ODR_HIGH(GPIOB_UART1_RX) |             \
                                      PIN_ODR_HIGH(GPIOB_MPU_SCL) |             \
@@ -495,10 +495,10 @@
                                      PIN_ODR_HIGH(GPIOB_PIN15))
 #define VAL_GPIOB_AFRL              (PIN_AFIO_AF(GPIOB_PIN0, 0U) |          \
                                      PIN_AFIO_AF(GPIOB_PIN1, 0U) |          \
-                                     PIN_AFIO_AF(GPIOB_PIN2, 0U) |          \
+                                     PIN_AFIO_AF(GPIOB_MEN, 0U) |          \
                                      PIN_AFIO_AF(GPIOB_SWO, 0U) |           \
-                                     PIN_AFIO_AF(GPIOB_HALL1A, 0U) |          \
-                                     PIN_AFIO_AF(GPIOB_HALL1B, 0U) |          \
+                                     PIN_AFIO_AF(GPIOB_MPWM, 2U) |          \
+                                     PIN_AFIO_AF(GPIOB_MDIR, 2U) |          \
                                      PIN_AFIO_AF(GPIOB_UART1_TX, 7U) |           \
                                      PIN_AFIO_AF(GPIOB_UART1_RX, 7U))
 #define VAL_GPIOB_AFRH              (PIN_AFIO_AF(GPIOB_MPU_SCL, 4U) |          \

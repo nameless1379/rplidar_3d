@@ -135,36 +135,6 @@ u_result stm32_serial::_waitNode(stm32_serial_packet_t* node, _u32 timeout)
     return RESULT_OPERATION_TIMEOUT;
 }
 
-u_result stm32_serial::_waitPacket(stm32_serial_packet_t * nodebuffer, size_t & count, _u32 timeout)
-{
-    if (!_isConnected)
-    {
-        count = 0;
-        return RESULT_OPERATION_FAIL;
-    }
-
-    size_t   recvNodeCount =  0;
-    _u32     startTs = getms();
-    _u32     waitTime;
-    u_result ans;
-
-    while ((waitTime = getms() - startTs) <= timeout && recvNodeCount < count)
-    {
-        stm32_serial_packet_t node;
-        if (IS_FAIL(ans = _waitNode(&node, timeout - waitTime)))
-        {
-            return ans;
-        }
-
-        nodebuffer[recvNodeCount++] = node;
-
-        if (recvNodeCount == count) return RESULT_OK;
-    }
-    count = recvNodeCount;
-    return RESULT_OPERATION_TIMEOUT;
-}
-
-
 u_result stm32_serial::_cachePacket(void)
 {
     u_result                      ans;

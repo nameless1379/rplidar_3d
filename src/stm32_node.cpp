@@ -70,6 +70,7 @@ int main(int argc, char * argv[])
 
     ros::NodeHandle nh;
     ros::NodeHandle nh_private("~");
+    ros::Publisher imu_pub = nh.advertise<geometry_msgs::QuaternionStamped>("imu_data", 1000);
 
     nh_private.param<std::string>("serial_port", serial_port, "/dev/ttyUSB0");
     nh_private.param<int>("serial_baudrate", serial_baudrate, 115200);
@@ -110,6 +111,7 @@ int main(int argc, char * argv[])
           return -1;
         }
 
+        publish_imu_msg(&imu_pub, nodes, "IMU_data");
         ros::spinOnce();
     }
 
