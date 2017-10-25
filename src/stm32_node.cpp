@@ -91,12 +91,13 @@ int main(int argc, char * argv[])
     if(IS_FAIL(serial->transmit_handshake()))
     {
       fprintf(stderr, "Error, failed to establish transmission with STM32\n");
-      return -1;
+      return -2;
     }
 
     serial->start_rx(DEFAULT_TIMEOUT);
     printf("Started receiving data...\n");
 
+    ros::Rate r(350);
     while (ros::ok())
     {
         stm32_serial_packet_t nodes[360*2];
@@ -104,14 +105,22 @@ int main(int argc, char * argv[])
 
         op_result = serial->grabPacket(nodes, count, DEFAULT_TIMEOUT);
 
-        if (op_result != RESULT_OK ||
-          nodes[0].imu_data[count - 1] == 100.0f)
+        if (op_result != RESULT_OK)
         {
-          printf("Failed to obtain imu data!\n");
+          printf("Connection lost!\n");
           return -1;
         }
 
-        publish_imu_msg(&imu_pub, nodes, "IMU_data");
+        if (nodes[0].imu_data[0] == 100.0f)
+        {
+          printf("Failed to obtain imu data!\n");
+          //return -2;
+        }
+
+        //printf("stepper angle: %f\n", nodes[0].stepper_angle * 180.0f/M_PI);
+        //publish_imu_msg(&imu_pub, nodes, "IMU_data");
+
+        r.sleep();
         ros::spinOnce();
     }
 

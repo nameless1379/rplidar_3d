@@ -3,9 +3,12 @@
 
 #include "uart_host.h"
 #include "mpu6050.h"
+#include "stepper.h"
 
-#define  NUM_SEGMENT 3U
-#define  RXBUF_SIZE 6U
+#define  NUM_SEGMENT 4U
+#define  RXBUF_START_SIZE  6U
+#define  RXBUF_CMD_SIZE    6U
+#define  RXBUF_SIZE  12U
 #define  START_SEQ_SIZE 2U
 
 /* Put Datas to transfer here*/
@@ -14,12 +17,13 @@ static uint32_t timestamp;
 
 static uint8_t start_flag = 0;
 static const uint8_t start_seq[START_SEQ_SIZE] = {0xa5, 0x5a};
-static const float imu_data_invalid_seq[3] = {100.0f, 100.0f, 100.0f};
-static const uint8_t size_of_segments[NUM_SEGMENT] = {START_SEQ_SIZE, 12, 4};
+static const float imu_data_invalid_seq[4] = {100.0f, 100.0f, 100.0f, 100.0f};
+static const uint8_t size_of_segments[NUM_SEGMENT] = {START_SEQ_SIZE, 16, 4, 4};
 static uint8_t* segments[NUM_SEGMENT];
 
 static thread_t* uart_host_thread_p;
 static thread_reference_t uart_host_thread_handler = NULL;
+static thread_reference_t uart_receive_thread_handler = NULL;
 static uint8_t rxbuf[RXBUF_SIZE];
 
 static uint8_t compare_input(void)
@@ -49,14 +53,24 @@ static void txend2(UARTDriver *uartp)
  */
 static void rxend(UARTDriver *uartp) {
 
-  if(uartp == UART_TO_HOST)
+  if(uartp == UART_TO_HOST && compare_input())
   {
-    if(compare_input())
+    if(!start_flag)
+    {
       start_flag = 1;
+      chSysLockFromISR();
+      chThdResumeI(&uart_host_thread_handler, MSG_OK);
+      chSysUnlockFromISR();
+    }
+    else
+    {
+      float stepper_velcmd = *((float*)(rxbuf + 2));
+      stepper_setvelocity(stepper_velcmd);
 
-    chSysLockFromISR();
-    chThdResumeI(&uart_host_thread_handler, MSG_OK);
-    chSysUnlockFromISR();
+      chSysLockFromISR();
+      chThdResumeI(&uart_receive_thread_handler, MSG_OK);
+      chSysUnlockFromISR();
+    }
   }
 }
 
@@ -80,6 +94,23 @@ static inline void uart_host_send(const uint8_t* txbuf, const uint8_t size)
   chSysUnlock();
 }
 
+static THD_WORKING_AREA(uart_receive_thread_wa, 128);
+static THD_FUNCTION(uart_receive_thread, p)
+{
+  (void)p;
+  chRegSetThreadName("uart host transmitter");
+
+  while(!chThdShouldTerminateX())
+  {
+    uartStartReceive(UART_TO_HOST, RXBUF_CMD_SIZE, rxbuf);
+
+    chSysLock();
+    chThdSuspendS(&uart_receive_thread_handler);
+    chSysUnlock();
+  }
+}
+
+
 #define  HOST_TRANSMIT_PERIOD  1000000/HOST_TRANSMIT_FREQ
 static THD_WORKING_AREA(uart_host_thread_wa, 256);
 static THD_FUNCTION(uart_host_thread, p)
@@ -89,15 +120,15 @@ static THD_FUNCTION(uart_host_thread, p)
 
   uartStart(UART_TO_HOST, &uart_cfg_host);
   segments[0] = start_seq;
-  segments[1] = pIMU->euler_angle;
-  segments[2] = &timestamp;
+  segments[1] = (uint8_t*)(pIMU->qIMU);
+  segments[NUM_SEGMENT - 1] = (uint8_t*)&timestamp;
 
   uint32_t tick = chVTGetSystemTimeX();
   uint8_t i;
 
   while(!start_flag)
   {
-    uartStartReceive(UART_TO_HOST, RXBUF_SIZE, rxbuf);
+    uartStartReceive(UART_TO_HOST, RXBUF_START_SIZE, rxbuf);
 
     chSysLock();
     chThdSuspendS(&uart_host_thread_handler);
@@ -109,8 +140,15 @@ static THD_FUNCTION(uart_host_thread, p)
   int32_t timestamp_sync = time_host - time_curr;
   timestamp = ST2MS(chVTGetSystemTimeX()) + timestamp_sync;
 
+  float stepper_angle = 0.0f;
+  segments[2] = (uint8_t*)&stepper_angle;
+
   for (i = 0; i < NUM_SEGMENT; i++)
     uart_host_send(segments[i], size_of_segments[i]);
+
+  chThdCreateStatic(uart_receive_thread_wa, sizeof(uart_receive_thread_wa),
+                    NORMALPRIO + 7,
+                    uart_receive_thread, NULL);
 
   chThdSleepMilliseconds(100);
 
@@ -123,6 +161,8 @@ static THD_FUNCTION(uart_host_thread, p)
     {
       tick = chVTGetSystemTimeX();
     }
+
+    stepper_angle = stepper_get_angle();
 
     if(pIMU->data_invalid)
       segments[1] = (uint8_t*)imu_data_invalid_seq;

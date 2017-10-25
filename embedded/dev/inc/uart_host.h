@@ -5,7 +5,6 @@
 
 #define  HOST_TRANSMIT_FREQ 400U
 
-
 void uart_host_init(void);
 
 #endif

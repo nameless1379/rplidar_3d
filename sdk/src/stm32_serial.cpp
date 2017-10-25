@@ -72,16 +72,12 @@ u_result stm32_serial::transmit_handshake()
 
     stm32_serial_packet_t node;
     if(IS_FAIL(_waitNode(&node, DEFAULT_TIMEOUT)))
-    {
       return RESULT_OPERATION_FAIL;
-    }
 
     _s32 sync_error = node.timeStamp - timeStamp;
     printf("sync error:%d\n",sync_error);
     if(abs(sync_error) > MAX_SYNC_ERROR)
-    {
       return RESULT_OPERATION_FAIL;
-    }
 
     return RESULT_OK;
 }

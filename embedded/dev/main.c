@@ -48,6 +48,7 @@ static THD_FUNCTION(Attitude_thread, p)
     else
     {
       tick = chVTGetSystemTimeX();
+      palSetPad(GPIOD,GPIOD_LED4);
     }
 
     errorCode = attitude_update(pIMU_1);
@@ -96,6 +97,7 @@ int main(void) {
                     NORMALPRIO + 5,
                     Attitude_thread, pIMU);
 
+  chThdSleepMilliseconds(10);
   uart_host_init();
 
   palClearPad(GPIOD,GPIOD_LED3);

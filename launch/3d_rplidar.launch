@@ -1,5 +1,5 @@
 <launch>
-  <node name= "stm32Node"          pkg="rplidar_3d"  type="rplidarTest" output="screen">
+  <node name= "stm32Node"          pkg="rplidar_3d"  type="stm32Node" output="screen">
   <param name="serial_port"         type="string" value="/dev/ttyUSB0"/>
   <param name="serial_baudrate"     type="int"    value="115200"/>
   </node>
