@@ -34,6 +34,7 @@
 
 #pragma once
 
+#include "ros/ros.h"
 
 #ifndef __cplusplus
 #error "The RPlidar SDK requires a C++ compiler to be built"
@@ -197,9 +198,21 @@ public:
     /// The interface will return RESULT_OPERATION_FAIL when all the scan data is invalid.
     virtual u_result ascendScanData(rplidar_response_measurement_node_t * nodebuffer, size_t count) = 0;
 
+    virtual _u32 getScanTimeUs(void);
+    virtual ros::Time getStartTime(void);
 protected:
     RPlidarDriver() {}
     virtual ~RPlidarDriver() {}
+
+    enum {
+        FRAME_NOT_STARTED = 0,
+        FRAME_STARTING = 1,
+        FRAME_STARTED = 2
+    };
+
+    _u8 _start;
+    ros::Time _start_time;
+    _u32 _scan_time;
 };
 
 
