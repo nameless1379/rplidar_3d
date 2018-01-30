@@ -6,14 +6,17 @@
 #define  TFT_UPDATE_PERIOD_MS 50U
 
 // SPI, RST, DC
-#define TFT_RST_PIN		14U
-#define TFT_DC_PIN		15U
-#define TFT_RST_PORT	GPIOE
-#define TFT_DC_PORT		GPIOE
+#define TFT_RST_PIN		0U
+#define TFT_DC_PIN		5U
+#define TFT_RST_PORT	GPIOB
+#define TFT_DC_PORT		GPIOC
 
-#define TFT_SPI			 &SPID2
-#define GPIO_Pin_CS		  12U
-#define GPIO_CS			  GPIOB
+#define TFT_SPI			 &SPID1
+#define GPIO_Pin_CS		   4U
+#define GPIO_CS			  GPIOC
+
+#define TFT_HORIZONTAL   1U
+#define TFT_VERTICAL     0U
 
 // Color
 #define	BGR888_MODE		1

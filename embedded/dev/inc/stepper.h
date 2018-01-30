@@ -9,8 +9,8 @@
 
 #define STEPPER_COUNTER  GPTD2
 
-#define STEPPER_EN_GPIO  GPIOB
-#define STEPPER_EN_PIN      2U
+#define STEPPER_EN_GPIO  GPIOC
+#define STEPPER_EN_PIN      3U
 
 #define stepper_stop() (STEPPER_TIM.tim->CCR[STEPPER_PWM_CH] = 0)
 
@@ -23,8 +23,8 @@ typedef enum
 
 typedef enum
  {
-   STEPPER_CW = 0,
-   STEPPER_CCW = 1
+   STEPPER_CCW = 0,
+   STEPPER_CW = 1
  } stepper_direction_t;
 
 typedef struct{

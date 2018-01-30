@@ -4,6 +4,7 @@
 #include "uart_host.h"
 #include "mpu6050.h"
 #include "stepper.h"
+#include "tft_display.h"
 
 #define  NUM_SEGMENT 4U
 #define  RXBUF_START_SIZE  6U
@@ -65,7 +66,10 @@ static void rxend(UARTDriver *uartp) {
     else
     {
       float stepper_velcmd = *((float*)(rxbuf + 2));
-      stepper_setvelocity(stepper_velcmd);
+      if(stepper_velcmd == 0.0f)
+        stepper_stop();
+      else
+        stepper_setvelocity(stepper_velcmd);
 
       chSysLockFromISR();
       chThdResumeI(&uart_receive_thread_handler, MSG_OK);
@@ -139,6 +143,7 @@ static THD_FUNCTION(uart_host_thread, p)
   uint32_t time_curr = ST2MS(chVTGetSystemTimeX());
   int32_t timestamp_sync = time_host - time_curr;
   timestamp = ST2MS(chVTGetSystemTimeX()) + timestamp_sync;
+  tft_printf(3,6,"Connected to ROS");
 
   float stepper_angle = 0.0f;
   segments[2] = (uint8_t*)&stepper_angle;

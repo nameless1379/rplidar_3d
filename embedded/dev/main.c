@@ -33,8 +33,7 @@ static THD_FUNCTION(Attitude_thread, p)
 
   while(errorCode)
   {
-    //chprintf(chp,"IMU Init Failed: %d", errorCode);
-    palSetPad(GPIOD,GPIOD_LED3);
+    tft_printf(0,1,"E:IMU Init Failed: %d", errorCode);
     pIMU->data_invalid = true;
     chThdSleepMilliseconds(500);
   }
@@ -57,7 +56,7 @@ static THD_FUNCTION(Attitude_thread, p)
     {
       palSetPad(GPIOD,GPIOD_LED3);
       pIMU->data_invalid = true;
-      chprintf(chp,"IMU Reading Error %d", errorCode);
+      chprintf(0,1,"E:IMU Reading Error %d", errorCode);
       chThdSleepMilliseconds(500);
     }
 
@@ -86,9 +85,11 @@ int main(void) {
   chSysInit();
 
   shellStart();
-  tft_init(1, CYAN,BLACK,BLACK);
+  tft_init(TFT_HORIZONTAL, CYAN,BLACK,BLACK);
+  tft_printf(1,0,"RPLIDAR CONTROLLER");
+  tft_printf(3,7,"Edward ZHANG");
 
-  stepper_init(STEPPER_CW);
+  stepper_init(STEPPER_CCW);
   stepper_setvelocity(2*M_PI);
 
   pIMU = mpu6050_get();
@@ -100,13 +101,9 @@ int main(void) {
   chThdSleepMilliseconds(10);
   uart_host_init();
 
-  palClearPad(GPIOD,GPIOD_LED3);
-  palClearPad(GPIOD,GPIOD_LED4);
-  palClearPad(GPIOD,GPIOD_LED5);
-
   while (true)
   {
-    palTogglePad(GPIOD,GPIOD_LED6);
+    palTogglePad(GPIOB,GPIOB_LED);
     chThdSleepMilliseconds(200);
   }
 

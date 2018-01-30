@@ -29,6 +29,7 @@ public:
   bool isConnected();
 
   u_result transmit_handshake();
+  u_result transmit_stepper_cmd(const float vel_cmd);
 
   u_result start_rx(_u32 timeout);
   u_result grabPacket(stm32_serial_packet_t * nodebuffer, size_t & count, _u32 timeout);

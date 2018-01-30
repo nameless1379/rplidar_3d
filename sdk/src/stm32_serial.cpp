@@ -22,7 +22,6 @@ u_result stm32_serial::connect(const char * port_path, _u32 baudrate)
 
     if (!_rxtx)
     {
-      printf("wtf\n" );
       return RESULT_INSUFFICIENT_MEMORY;
     }
 
@@ -78,6 +77,17 @@ u_result stm32_serial::transmit_handshake()
     printf("sync error:%d\n",sync_error);
     if(abs(sync_error) > MAX_SYNC_ERROR)
       return RESULT_OPERATION_FAIL;
+
+    return RESULT_OK;
+}
+
+
+u_result stm32_serial::transmit_stepper_cmd(const float vel_cmd)
+{
+    _u8 txbuf[2] = {0xa5,0x5a};
+
+    _transmit(txbuf, 2);
+    _transmit((_u8*)&vel_cmd, 4);
 
     return RESULT_OK;
 }

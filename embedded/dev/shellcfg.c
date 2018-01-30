@@ -1,5 +1,6 @@
 #include "main.h"
 #include "shell.h"
+#include <string.h>
 
 static THD_WORKING_AREA(Shell_thread_wa, 1024);
 
@@ -8,6 +9,24 @@ static void cmd_print(BaseSequentialStream * chp, int argc, char *argv[]){
 
   chprintf(chp,"Step: %d\r\n", stepper_get_steps());
   chprintf(chp,"Angle: %f\r\n", stepper_get_angle()*180.0f/M_PI );
+}
+
+static void cmd_stepper(BaseSequentialStream * chp, int argc, char *argv[]){
+  if(argc)
+  {
+    if(!strcmp(argv[0],"dir"))
+      stepper_changedir();
+    else
+    {
+      char *toNumber = argv[0];
+      uint32_t finalNum=0;
+      while(*toNumber>='0' && *toNumber<='9')
+        finalNum=finalNum*10+*(toNumber++)-'0';
+
+      float vel = finalNum * 2*M_PI/60;
+      stepper_setvelocity(finalNum);
+    }
+  }
 }
 
 static void cmd_calibration(BaseSequentialStream * chp, int argc, char *argv[])
@@ -36,7 +55,8 @@ static void cmd_calibration(BaseSequentialStream * chp, int argc, char *argv[])
 static const ShellCommand commands[] =
 {
   {"print",cmd_print},
-  {"cal",cmd_calibration}
+  {"cal",cmd_calibration},
+  {"step",cmd_stepper}
 };
 
 static const ShellConfig shell_cfg1 =

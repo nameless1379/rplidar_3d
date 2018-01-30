@@ -10,10 +10,12 @@ FILE(GLOB RPLIDAR_SDK_SRC
 )
 
 find_package(catkin REQUIRED COMPONENTS
+  rospy
   roscpp
   rosconsole
   sensor_msgs
   geometry_msgs
+  message_generation
 )
 
 include_directories(
@@ -22,7 +24,20 @@ include_directories(
   ${catkin_INCLUDE_DIRS}
 )
 
-catkin_package()
+add_service_files(
+  FILES
+  stm32_cmd.srv
+)
+
+generate_messages(
+  DEPENDENCIES
+  std_msgs
+)
+
+catkin_package(
+  CATKIN_DEPENDS
+  message_runtime
+)
 
 add_executable(rplidarNode src/lidar_node.cpp ${RPLIDAR_SDK_SRC})
 target_link_libraries(rplidarNode ${catkin_LIBRARIES})
@@ -32,8 +47,13 @@ target_link_libraries(rplidarNodeClient ${catkin_LIBRARIES})
 
 add_executable(stm32Node src/stm32_node.cpp ${RPLIDAR_SDK_SRC})
 target_link_libraries(stm32Node ${catkin_LIBRARIES})
+add_dependencies(stm32Node rplidar_3d_gencpp)
 
-install(TARGETS rplidarNode rplidarNodeClient stm32Node
+add_executable(stm32Cmd src/stm32_controller.cpp)
+target_link_libraries(stm32Cmd ${catkin_LIBRARIES})
+add_dependencies(stm32Cmd rplidar_3d_gencpp)
+
+install(TARGETS rplidarNode rplidarNodeClient stm32Node stm32Cmd
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}

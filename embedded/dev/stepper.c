@@ -101,7 +101,12 @@ void stepper_setdir(const stepper_direction_t dir)
   }
 }
 
-#define  STEPPER_PSC  (float)PWM_PERIOD/(float)(STEPPER_DIV * 2 * M_PI)
+void stepper_changedir(void)
+{
+  stepper_setdir(stepper.dir == 0 ? 1 : 0);
+}
+
+#define  STEPPER_PSC  ((float)PWM_PERIOD * 2 * M_PI)/(float)(STEPPER_DIV)
 /**
  *  @brief      set the velocity of stepper motors
  *  @param[in]  velocity   Amplitude of angular velocity of stepper motor in rad/s.
@@ -119,8 +124,12 @@ void stepper_setvelocity(const float vel)
     stepper_stop();
     return;
   }
+  else if(vel < 0.0f)
+    stepper_setdir(STEPPER_CW);
+  else
+    stepper_setdir(STEPPER_CCW);
 
-  stepper.ARR = (uint16_t)(vel * STEPPER_PSC);
+  stepper.ARR = (uint16_t)(STEPPER_PSC / vel);
 
   STEPPER_TIM.tim->ARR = stepper.ARR;
   STEPPER_TIM.tim->CCR[STEPPER_PWM_CH] = stepper.ARR/2;

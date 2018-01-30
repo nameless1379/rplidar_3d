@@ -30,7 +30,7 @@
 
 #include "mcuconf.h"
 
-#define SERIAL_CMD &SD4
+#define SERIAL_CMD &SD1
 
 /**
  * @brief   Enables the PAL subsystem.
