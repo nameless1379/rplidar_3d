@@ -1,6 +1,7 @@
 <launch>
   <node name="LaserScanGen"   pkg="rplidar_3d"  type="LaserScanGen" output="screen">
   </node>
+
   <node name="PCLGen"   pkg="rplidar_3d"  type="PCLGen" output="screen">
   </node>
 </launch>

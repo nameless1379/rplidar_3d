@@ -45,6 +45,9 @@
 
 #include "sensor_msgs/LaserScan.h"
 #include <sensor_msgs/PointCloud2.h>
+#include "geometry_msgs/QuaternionStamped.h"
+
+#define POS_BUFFER_SIZE 150U
 
 namespace laser_geometry
 {
@@ -100,10 +103,13 @@ namespace laser_geometry
 
     public:
 
-      LaserProjection() : angle_min_(0), angle_max_(0) {}
-      LaserProjection(ros::NodeHandle n ) : angle_min_(0), angle_max_(0)
+      LaserProjection() : angle_min_(0), angle_max_(0), pos_buffer_num(-1)
+      {}
+
+      LaserProjection(ros::NodeHandle n ) : angle_min_(0), angle_max_(0), pos_buffer_num(-1)
       {
           scan_sub = n.subscribe("/gen_scan", 1000, &LaserProjection::scan_callBack, this);
+          pos_sub = n.subscribe("/lidar_pos",1000,&LaserProjection::pos_callBack, this);
           cloud_pub = n.advertise<sensor_msgs::PointCloud2>("/gen_PCL", 1000);
       }
 
@@ -130,6 +136,16 @@ namespace laser_geometry
       void scan_callBack(const sensor_msgs::LaserScan::ConstPtr& scan)
       {
         scan_callBack_(scan);
+      }
+
+      void pos_callBack(const geometry_msgs::QuaternionStamped::ConstPtr& pos)
+      {
+        pos_buffer_num++;
+        if(pos_buffer_num == POS_BUFFER_SIZE)
+          pos_buffer_num = 0;
+
+        pos_buffer[pos_buffer_num].header = pos->header;
+        pos_buffer[pos_buffer_num].quaternion = pos->quaternion;
       }
 
       void projectLaser (const sensor_msgs::LaserScan& scan_in,
@@ -163,6 +179,7 @@ namespace laser_geometry
                                                                    double angle_increment,
                                                                    unsigned int length);
       ros::Subscriber scan_sub;
+      ros::Subscriber pos_sub;
       ros::Publisher cloud_pub;
     private:
 
@@ -182,8 +199,9 @@ namespace laser_geometry
       Eigen::ArrayXXd co_sine_map_;
       boost::mutex guv_mutex_;
 
+      int pos_buffer_num;
+      geometry_msgs::QuaternionStamped pos_buffer[POS_BUFFER_SIZE];
     };
-
 }
 
 #endif //LASER_SCAN_UTILS_LASERSCAN_H

@@ -392,8 +392,7 @@ namespace laser_geometry
     sensor_msgs::PointCloud2 cloud_out;
 
     tf2::Quaternion q1,q2;
-    q1.setEulerZYX(0,DEG2RAD(22.5),0);
-    q2.setEulerZYX(DEG2RAD(45),DEG2RAD(22.5),0);
+
     transformLaserScanToPointCloud ("PCL2_frame",
                                     *scan, cloud_out,
                                     q1,tf2::Vector3(0, 0, 0),q2,tf2::Vector3(0, 0, 0));

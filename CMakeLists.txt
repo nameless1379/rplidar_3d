@@ -65,7 +65,7 @@ add_executable(PCLGen src/PCL2Generator.cpp)
 target_link_libraries(PCLGen ${Boost_LIBRARIES} ${Eigen_LIBRARIES} ${tf_LIBRARIES})
 
 add_executable(stm32Node src/stm32_node.cpp ${RPLIDAR_SDK_SRC})
-target_link_libraries(stm32Node ${catkin_LIBRARIES})
+target_link_libraries(stm32Node ${catkin_LIBRARIES} ${tf_LIBRARIES})
 add_dependencies(stm32Node rplidar_3d_gencpp)
 
 add_executable(stm32Cmd src/stm32_controller.cpp)

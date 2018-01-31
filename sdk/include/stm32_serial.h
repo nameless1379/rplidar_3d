@@ -1,5 +1,7 @@
 #pragma once
 
+#include "ros/ros.h"
+
 #include "rptypes.h"
 
 #include "hal/util.h"
@@ -11,7 +13,6 @@
 #define DEFAULT_TIMEOUT  2000
 #define MAX_STM32_PACKETS 2048
 #define MAX_SYNC_ERROR  20
-
 
 typedef struct {
   _u16 sync;
@@ -34,6 +35,8 @@ public:
   u_result start_rx(_u32 timeout);
   u_result grabPacket(stm32_serial_packet_t * nodebuffer, size_t & count, _u32 timeout);
 
+  void publish_pos_msg(ros::Publisher *pub, stm32_serial_packet_t *node, std::string frame_id);
+
 protected:
   bool                _isConnected;
   bool                _rxStarted;
@@ -48,4 +51,7 @@ protected:
   rp::hal::Event          _dataEvt;
   rp::hal::serial_rxtx*      _rxtx;
   rp::hal::Thread     _cachethread;
+
+  ros::Time ros_start;
+  _u32 timeStamp_start;
 };

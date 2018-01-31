@@ -39,28 +39,44 @@
 #include "stm32_serial.h"
 #include "rptypes.h"
 
+#include <tf2/LinearMath/Transform.h>
+
+#define DEG2RAD(x) ((x)*M_PI/180.)
+
 static stm32_serial* serial;
+
 /**
   * TODO: Modify stm32 to transmit quaternion
   *       call this function to publish attitude data
   */
-void publish_imu_msg(ros::Publisher *pub, stm32_serial_packet_t *node, std::string frame_id)
+void stm32_serial::publish_pos_msg(ros::Publisher *pub, stm32_serial_packet_t *node, std::string frame_id)
 {
-    geometry_msgs::QuaternionStamped imu_msg;
+    geometry_msgs::QuaternionStamped pos_msg;
 
     static uint32_t packet_count = 0;
-    ros::Time timeStamp((double)(node->timeStamp)/1000);
 
-    imu_msg.header.seq = packet_count++;
-    imu_msg.header.stamp = timeStamp;
-    imu_msg.header.frame_id = frame_id;
+    ros::Duration duration((node->timeStamp - timeStamp_start)*1e-3);
 
-    imu_msg.quaternion.x = (double)(node->imu_data[0]);
-    imu_msg.quaternion.y = (double)(node->imu_data[1]);
-    imu_msg.quaternion.z = (double)(node->imu_data[2]);
-    imu_msg.quaternion.w = (double)(node->imu_data[3]);
+    pos_msg.header.seq = packet_count++;
+    pos_msg.header.stamp = ros_start + duration;
+    pos_msg.header.frame_id = frame_id;
 
-    pub->publish(imu_msg);
+    tf2::Quaternion q1,q2;
+    q2.setEulerZYX(0,DEG2RAD(22.5),0);
+
+    if (node->imu_data[0] != 100.0f)
+      q1 = tf2::Quaternion(node->imu_data[0], node->imu_data[1], node->imu_data[2], node->imu_data[3]);
+    else
+      q1  = tf2::Quaternion::getIdentity();
+
+    q2*= q1;
+
+    pos_msg.quaternion.x = (double)(q2.x());
+    pos_msg.quaternion.y = (double)(q2.y());
+    pos_msg.quaternion.z = (double)(q2.z());
+    pos_msg.quaternion.w = (double)(q2.w());
+
+    pub->publish(pos_msg);
 }
 
 #define STEPPER_MAX_SPEED 8*M_PI
@@ -82,7 +98,7 @@ int main(int argc, char * argv[])
 
     ros::NodeHandle nh;
     ros::NodeHandle nh_private("~");
-    ros::Publisher imu_pub = nh.advertise<geometry_msgs::QuaternionStamped>("imu_data", 1000);
+    ros::Publisher pos_pub = nh.advertise<geometry_msgs::QuaternionStamped>("/lidar_pos", 1000);
 
     nh_private.param<std::string>("serial_port", serial_port, "/dev/ttyUSB0");
     nh_private.param<int>("serial_baudrate", serial_baudrate, 115200);
@@ -126,7 +142,7 @@ int main(int argc, char * argv[])
     serial->start_rx(DEFAULT_TIMEOUT);
     printf("Started receiving data...\n");
 
-    ros::Rate r(200);
+    ros::Rate r(250);
     while (ros::ok())
     {
         stm32_serial_packet_t nodes[360*2];
@@ -147,7 +163,7 @@ int main(int argc, char * argv[])
         }
 */
         printf("stepper angle: %f\n", nodes[0].stepper_angle * 180.0f/M_PI);
-        //publish_imu_msg(&imu_pub, nodes, "IMU_data");
+        serial->publish_pos_msg(&pos_pub, nodes, "PCL2_frame");
 
         r.sleep();
         ros::spinOnce();

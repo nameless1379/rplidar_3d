@@ -64,16 +64,18 @@ u_result stm32_serial::_transmit(_u8* txbuf, _u16 size)
 u_result stm32_serial::transmit_handshake()
 {
     _u8 txbuf[2] = {0xa5,0x5a};
-    _u32 timeStamp = getms();
+
+    ros_start = ros::Time::now();
+    timeStamp_start = getms();
 
     _transmit(txbuf, 2);
-    _transmit((_u8*)&timeStamp, 4);
+    _transmit((_u8*)&timeStamp_start, 4);
 
     stm32_serial_packet_t node;
     if(IS_FAIL(_waitNode(&node, DEFAULT_TIMEOUT)))
       return RESULT_OPERATION_FAIL;
 
-    _s32 sync_error = node.timeStamp - timeStamp;
+    _s32 sync_error = node.timeStamp - timeStamp_start;
     printf("sync error:%d\n",sync_error);
     if(abs(sync_error) > MAX_SYNC_ERROR)
       return RESULT_OPERATION_FAIL;
