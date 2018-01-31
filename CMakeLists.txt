@@ -16,13 +16,25 @@ find_package(catkin REQUIRED COMPONENTS
   sensor_msgs
   geometry_msgs
   message_generation
+  angles
+  cmake_modules
+  tf
+  tf2
 )
 
+find_package(Boost REQUIRED COMPONENTS system thread)
+
+find_package(PkgConfig)
+pkg_search_module(Eigen3 REQUIRED eigen3)
+
 include_directories(
+  include
   ${RPLIDAR_SDK_PATH}/include
   ${RPLIDAR_SDK_PATH}/src
   ${catkin_INCLUDE_DIRS}
+  ${Eigen3_INCLUDE_DIRS}
 )
+link_directories(${Eigen3_LIBRARY_DIRS})
 
 add_service_files(
   FILES
@@ -37,6 +49,7 @@ generate_messages(
 catkin_package(
   CATKIN_DEPENDS
   message_runtime
+  DEPENDS Boost Eigen3
 )
 
 add_executable(rplidarNode src/lidar_node.cpp ${RPLIDAR_SDK_SRC})
@@ -44,6 +57,12 @@ target_link_libraries(rplidarNode ${catkin_LIBRARIES})
 
 add_executable(rplidarNodeClient src/lidar_client.cpp)
 target_link_libraries(rplidarNodeClient ${catkin_LIBRARIES})
+
+add_executable(LaserScanGen src/laserScanGenerator.cpp)
+target_link_libraries(LaserScanGen ${catkin_LIBRARIES})
+
+add_executable(PCLGen src/PCL2Generator.cpp)
+target_link_libraries(PCLGen ${Boost_LIBRARIES} ${Eigen_LIBRARIES} ${tf_LIBRARIES})
 
 add_executable(stm32Node src/stm32_node.cpp ${RPLIDAR_SDK_SRC})
 target_link_libraries(stm32Node ${catkin_LIBRARIES})
@@ -53,7 +72,7 @@ add_executable(stm32Cmd src/stm32_controller.cpp)
 target_link_libraries(stm32Cmd ${catkin_LIBRARIES})
 add_dependencies(stm32Cmd rplidar_3d_gencpp)
 
-install(TARGETS rplidarNode rplidarNodeClient stm32Node stm32Cmd
+install(TARGETS rplidarNode rplidarNodeClient LaserScanGen PCLGen stm32Node stm32Cmd
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
