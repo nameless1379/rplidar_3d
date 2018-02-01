@@ -1,7 +1,19 @@
 <launch>
-  <node name= "stm32Node"          pkg="rplidar_3d"  type="stm32Node" output="screen">
+  <node name="rplidarNode"          pkg="rplidar_3d"  type="rplidarNode" output="screen">
   <param name="serial_port"         type="string" value="/dev/ttyUSB0"/>
   <param name="serial_baudrate"     type="int"    value="115200"/>
-  <param name="stepper_RPM"         type="int"    value="-20"/>
+  <param name="frame_id"            type="string" value="laser"/>
+  <param name="inverted"            type="bool"   value="false"/>
+  <param name="angle_compensate"    type="bool"   value="true"/>
+  </node>
+
+  <node name= "stm32Node"          pkg="rplidar_3d"  type="stm32Node" output="screen">
+  <param name="serial_port"         type="string" value="/dev/ttyUSB1"/>
+  <param name="serial_baudrate"     type="int"    value="115200"/>
+  <param name="stepper_RPM"         type="int"    value="40"/>
+  </node>
+
+  <node name="PCLGen"   pkg="rplidar_3d"  type="PCLGen" output="screen">
+  <param name="Points_in_Cloud"         type="int"     value="4000"/>
   </node>
 </launch>

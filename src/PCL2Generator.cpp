@@ -387,16 +387,74 @@ namespace laser_geometry
     }
   }
 
+  void LaserProjection::append_cloud(const sensor_msgs::PointCloud2& cloud_in)
+  {
+    cloud.header = cloud_in.header;
+    static bool inited = false;
+
+    if(!inited)
+    {
+      cloud.height = cloud_in.height;
+      cloud.width = points_in_cloud;
+      cloud.fields = cloud_in.fields;
+      cloud.is_bigendian = cloud_in.is_bigendian;
+      cloud.point_step = cloud_in.point_step;
+      cloud.row_step = points_in_cloud * cloud.point_step;
+      cloud.is_dense = cloud_in.is_dense;
+      cloud.data.resize(cloud.row_step * cloud.height);
+
+      inited = true;
+    }
+
+    total_points += cloud_in.width;
+    unsigned int start_point = total_points % points_in_cloud;
+    if(cloud_in.width < points_in_cloud - start_point)
+      memcpy(&cloud.data[start_point*cloud_in.point_step], &cloud_in.data[0], cloud_in.width * cloud_in.point_step);
+    else
+    {
+      unsigned int point_temp = points_in_cloud - start_point - 1;
+      if(point_temp)
+        memcpy(&cloud.data[start_point*cloud_in.point_step], &cloud_in.data[0], point_temp * cloud_in.point_step);
+      memcpy(&cloud.data[0], &cloud_in.data[point_temp*cloud_in.point_step], (cloud_in.width - point_temp) * cloud_in.point_step);
+    }
+  }
+
   void LaserProjection::scan_callBack_(const sensor_msgs::LaserScan::ConstPtr& scan)
   {
-    sensor_msgs::PointCloud2 cloud_out;
+    sensor_msgs::PointCloud2 new_cloud;
 
-    tf2::Quaternion q1,q2;
+    ros::Time start = scan->header.stamp - ros::Duration(sync),
+              end = start + ros::Duration(scan->scan_time - sync);
 
+    tf2::Quaternion q2;
+
+    int buffer_num = pos_buffer_num;
+    bool end_found = false;
+
+    for(int i = 0;i < POS_BUFFER_SIZE;i++)
+    {
+      if(buffer_num == 0)
+        buffer_num = POS_BUFFER_SIZE - 1;
+      else
+        buffer_num--;
+
+      if(pos_buffer[buffer_num].header.stamp < end && !end_found)
+      {
+          q2 = tf2::Quaternion(pos_buffer[buffer_num].quaternion.x, pos_buffer[buffer_num].quaternion.y,
+                pos_buffer[buffer_num].quaternion.z, pos_buffer[buffer_num].quaternion.w);
+          end_found = true;
+      }
+      if(pos_buffer[buffer_num].header.stamp < start)
+        break;
+    }
+
+    tf2::Quaternion q1(pos_buffer[buffer_num].quaternion.x, pos_buffer[buffer_num].quaternion.y,
+                       pos_buffer[buffer_num].quaternion.z, pos_buffer[buffer_num].quaternion.w);
     transformLaserScanToPointCloud ("PCL2_frame",
-                                    *scan, cloud_out,
+                                    *scan, new_cloud,
                                     q1,tf2::Vector3(0, 0, 0),q2,tf2::Vector3(0, 0, 0));
-    cloud_pub.publish(cloud_out);
+    append_cloud(new_cloud);
+    cloud_pub.publish(cloud);
   }
 } //laser_geometry
 
@@ -407,7 +465,10 @@ int main(int argc, char * argv[])
     ros::NodeHandle nh;
     ros::NodeHandle nh_private("~");
 
-    laser_geometry::LaserProjection Laser(nh);
+    int points = 0;
+    nh_private.param<int>("Points_in_Cloud", points, 0);
+
+    laser_geometry::LaserProjection Laser(nh, points);
 
     ros::spin();
 

@@ -3,5 +3,6 @@
   </node>
 
   <node name="PCLGen"   pkg="rplidar_3d"  type="PCLGen" output="screen">
+    <param name="Points_in_Cloud"         type="int"     value="4000"/>
   </node>
 </launch>

@@ -47,7 +47,7 @@
 #include <sensor_msgs/PointCloud2.h>
 #include "geometry_msgs/QuaternionStamped.h"
 
-#define POS_BUFFER_SIZE 150U
+#define POS_BUFFER_SIZE 200U
 
 namespace laser_geometry
 {
@@ -103,14 +103,15 @@ namespace laser_geometry
 
     public:
 
-      LaserProjection() : angle_min_(0), angle_max_(0), pos_buffer_num(-1)
-      {}
+      LaserProjection() :
+        angle_min_(0), angle_max_(0), pos_buffer_num(-1), sync(0.0), points_in_cloud(0), total_points(0){}
 
-      LaserProjection(ros::NodeHandle n ) : angle_min_(0), angle_max_(0), pos_buffer_num(-1)
+      LaserProjection(ros::NodeHandle n, const int points, const double sync = 0.0) :
+        angle_min_(0), angle_max_(0), pos_buffer_num(-1), sync(sync), points_in_cloud(points), total_points(0)
       {
-          scan_sub = n.subscribe("/gen_scan", 1000, &LaserProjection::scan_callBack, this);
+          scan_sub = n.subscribe("/scan", 1000, &LaserProjection::scan_callBack, this);
           pos_sub = n.subscribe("/lidar_pos",1000,&LaserProjection::pos_callBack, this);
-          cloud_pub = n.advertise<sensor_msgs::PointCloud2>("/gen_PCL", 1000);
+          cloud_pub = n.advertise<sensor_msgs::PointCloud2>("/PCL", 1000);
       }
 
 
@@ -178,6 +179,7 @@ namespace laser_geometry
                                                                    double angle_max,
                                                                    double angle_increment,
                                                                    unsigned int length);
+      void append_cloud(const sensor_msgs::PointCloud2& cloud_in);
       ros::Subscriber scan_sub;
       ros::Subscriber pos_sub;
       ros::Publisher cloud_pub;
@@ -192,6 +194,7 @@ namespace laser_geometry
 
       void scan_callBack_(const sensor_msgs::LaserScan::ConstPtr& scan);
 
+
       //! Internal map of pointers to stored values
       std::map<std::string,boost::numeric::ublas::matrix<double>* > unit_vector_map_;
       float angle_min_;
@@ -201,6 +204,12 @@ namespace laser_geometry
 
       int pos_buffer_num;
       geometry_msgs::QuaternionStamped pos_buffer[POS_BUFFER_SIZE];
+
+      sensor_msgs::PointCloud2 cloud; //Stores the point cloud data for two revolutions of stepper motor
+      const double sync; //To better synchonize the on-board sensor data and LIDAR,
+                  //we may want to slightly push the timeStamp of on_board data toward past
+      const unsigned int points_in_cloud; //Number of LIDAR frames to store in a cloud
+      unsigned long total_points;
     };
 }
 

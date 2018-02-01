@@ -53,23 +53,20 @@ void stm32_serial::publish_pos_msg(ros::Publisher *pub, stm32_serial_packet_t *n
 {
     geometry_msgs::QuaternionStamped pos_msg;
 
-    static uint32_t packet_count = 0;
-
     ros::Duration duration((node->timeStamp - timeStamp_start)*1e-3);
 
-    pos_msg.header.seq = packet_count++;
     pos_msg.header.stamp = ros_start + duration;
     pos_msg.header.frame_id = frame_id;
 
     tf2::Quaternion q1,q2;
-    q2.setEulerZYX(0,DEG2RAD(22.5),0);
+    q2.setEulerZYX(-node->stepper_angle,DEG2RAD(22.5),0);
 
     if (node->imu_data[0] != 100.0f)
       q1 = tf2::Quaternion(node->imu_data[0], node->imu_data[1], node->imu_data[2], node->imu_data[3]);
     else
       q1  = tf2::Quaternion::getIdentity();
 
-    q2*= q1;
+    //q2*= q1;
 
     pos_msg.quaternion.x = (double)(q2.x());
     pos_msg.quaternion.y = (double)(q2.y());
