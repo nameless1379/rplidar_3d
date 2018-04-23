@@ -6,18 +6,22 @@
 
 #define DEG2RAD(x) ((x)*M_PI/180.)
 
+double stepper_speed_sim;
+
 void publish_pos_msg(ros::Publisher *pub, std::string frame_id)
 {
     geometry_msgs::QuaternionStamped pos_msg;
 
     static float stepper_angle = 0.0f; //Sim stepper angle data
 
-    stepper_angle += DEG2RAD(1.8);
+    stepper_angle += DEG2RAD(stepper_speed_sim);
 
     pos_msg.header.stamp = ros::Time::now();
     pos_msg.header.frame_id = frame_id;
 
     tf2::Quaternion q;
+
+    //q.setEulerZYX(stepper_angle,DEG2RAD(22.5),0);
     q.setEulerZYX(stepper_angle,DEG2RAD(22.5),0);
 
     pos_msg.quaternion.x = (double)(q.x());
@@ -93,6 +97,7 @@ int main(int argc, char * argv[])
     ros::Publisher scan_pub = nh.advertise<sensor_msgs::LaserScan>("/gen_scan", 1000);
     ros::Publisher pos_pub = nh.advertise<geometry_msgs::QuaternionStamped>("/gen_pos", 1000);
 
+    nh_private.param<double>("Rotation_speed", stepper_speed_sim, 3.7);
 
     ros::Rate r(100);
     unsigned int count = 0;

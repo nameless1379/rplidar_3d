@@ -424,7 +424,7 @@ namespace laser_geometry
     sensor_msgs::PointCloud2 new_cloud;
 
     ros::Time start = scan->header.stamp - ros::Duration(sync),
-              end = start + ros::Duration(scan->scan_time - sync);
+              end = start + ros::Duration(scan->scan_time);
 
     tf2::Quaternion q2;
 
@@ -452,7 +452,7 @@ namespace laser_geometry
                        pos_buffer[buffer_num].quaternion.z, pos_buffer[buffer_num].quaternion.w);
     transformLaserScanToPointCloud ("PCL2_frame",
                                     *scan, new_cloud,
-                                    q1,tf2::Vector3(0, 0, 0),q2,tf2::Vector3(0, 0, 0));
+                                    q2,tf2::Vector3(0, 0, 0),q1,tf2::Vector3(0, 0, 0));
     append_cloud(new_cloud);
     cloud_pub.publish(cloud);
   }
@@ -468,7 +468,7 @@ int main(int argc, char * argv[])
     int points = 0;
     nh_private.param<int>("Points_in_Cloud", points, 0);
 
-    laser_geometry::LaserProjection Laser(nh, points);
+    laser_geometry::LaserProjection Laser(nh, points,0.135);
 
     ros::spin();
 

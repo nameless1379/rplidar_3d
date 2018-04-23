@@ -10,10 +10,25 @@
   <node name= "stm32Node"          pkg="rplidar_3d"  type="stm32Node" output="screen">
   <param name="serial_port"         type="string" value="/dev/ttyUSB1"/>
   <param name="serial_baudrate"     type="int"    value="115200"/>
-  <param name="stepper_RPM"         type="int"    value="40"/>
+  <param name="stepper_RPM"         type="int"    value="57"/>
   </node>
 
   <node name="PCLGen"   pkg="rplidar_3d"  type="PCLGen" output="screen">
-  <param name="Points_in_Cloud"         type="int"     value="4000"/>
+  <param name="Points_in_Cloud"         type="int"     value="8000"/>
+  </node>
+
+
+  <node pkg="octomap_server" type="octomap_server_node" name="octomap_server">
+  <param name="resolution" value="0.05" />
+
+    <!-- fixed map frame (set to 'map' if SLAM or localization running!) -->
+  <param name="frame_id" type="string" value="PCL2_frame" />
+
+    <!-- maximum range to integrate (speedup!) -->
+  <param name="sensor_model/max_range" value="5000.0" />
+
+    <!-- data source to integrate (PointCloud2) -->
+  <remap from="/PCL" to="/narrow_stereo/points_filtered2" />
+
   </node>
 </launch>

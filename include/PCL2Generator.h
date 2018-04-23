@@ -47,7 +47,7 @@
 #include <sensor_msgs/PointCloud2.h>
 #include "geometry_msgs/QuaternionStamped.h"
 
-#define POS_BUFFER_SIZE 200U
+#define POS_BUFFER_SIZE 400U
 
 namespace laser_geometry
 {
@@ -109,9 +109,13 @@ namespace laser_geometry
       LaserProjection(ros::NodeHandle n, const int points, const double sync = 0.0) :
         angle_min_(0), angle_max_(0), pos_buffer_num(-1), sync(sync), points_in_cloud(points), total_points(0)
       {
+          //scan_sub = n.subscribe("/scan", 1000, &LaserProjection::scan_callBack, this);
+          //pos_sub = n.subscribe("/lidar_pos",1000,&LaserProjection::pos_callBack, this);
+
           scan_sub = n.subscribe("/scan", 1000, &LaserProjection::scan_callBack, this);
-          pos_sub = n.subscribe("/lidar_pos",1000,&LaserProjection::pos_callBack, this);
-          cloud_pub = n.advertise<sensor_msgs::PointCloud2>("/PCL", 1000);
+          pos_sub = n.subscribe("/lidar_pos",1000,&LaserProjection::pos_callBack, this); //for simulation
+
+          cloud_pub = n.advertise<sensor_msgs::PointCloud2>("/cloud_in", 1000);
       }
 
 

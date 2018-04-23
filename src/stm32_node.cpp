@@ -59,6 +59,7 @@ void stm32_serial::publish_pos_msg(ros::Publisher *pub, stm32_serial_packet_t *n
     pos_msg.header.frame_id = frame_id;
 
     tf2::Quaternion q1,q2;
+
     q2.setEulerZYX(-node->stepper_angle,DEG2RAD(22.5),0);
 
     if (node->imu_data[0] != 100.0f)
@@ -66,7 +67,7 @@ void stm32_serial::publish_pos_msg(ros::Publisher *pub, stm32_serial_packet_t *n
     else
       q1  = tf2::Quaternion::getIdentity();
 
-    //q2*= q1;
+    q2 *= q1;
 
     pos_msg.quaternion.x = (double)(q2.x());
     pos_msg.quaternion.y = (double)(q2.y());
@@ -106,7 +107,7 @@ int main(int argc, char * argv[])
     printf("3D scanning RPLIDAR by Edward ZHANG\n");
 
     u_result op_result;
-    // make connection...
+    // make connection...q3= q3 * q2 * q1;
 
     if (IS_FAIL(serial->connect(serial_port.c_str(), (_u32)serial_baudrate))) {
       fprintf(stderr, "E: cannot bind to the specified serial port %s.\n"
@@ -159,7 +160,7 @@ int main(int argc, char * argv[])
           //return -2;
         }
 */
-        printf("stepper angle: %f\n", nodes[0].stepper_angle * 180.0f/M_PI);
+        //printf("stepper angle: %f\n", nodes[0].stepper_angle * 180.0f/M_PI);
         serial->publish_pos_msg(&pos_pub, nodes, "PCL2_frame");
 
         r.sleep();

@@ -472,8 +472,8 @@
                                      PIN_PUPDR_FLOATING(GPIOB_UART1_RX) |         \
                                      PIN_PUPDR_FLOATING(GPIOB_PIN8) |         \
                                      PIN_PUPDR_FLOATING(GPIOB_PIN9) |        \
-                                     PIN_PUPDR_FLOATING(GPIOB_UART3_TX) |       \
-                                     PIN_PUPDR_FLOATING(GPIOB_UART3_RX) |        \
+                                     PIN_PUPDR_PULLUP(GPIOB_UART3_TX) |       \
+                                     PIN_PUPDR_PULLUP(GPIOB_UART3_RX) |        \
                                      PIN_PUPDR_PULLDOWN(GPIOB_CAN2_RX) |        \
                                      PIN_PUPDR_PULLDOWN(GPIOB_CAN2_TX) |        \
                                      PIN_PUPDR_FLOATING(GPIOB_PIN14) |        \
