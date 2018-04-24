@@ -32,6 +32,19 @@
 
 #define SERIAL_CMD &SD1
 
+#define LEDG_ON()       (palClearPad(GPIOF, GPIOF_LED_G))
+#define LEDG_OFF()      (palSetPad(GPIOF, GPIOF_LED_G))
+#define LEDG_TOGGLE()   (palTogglePad(GPIOF, GPIOF_LED_G))
+#define LEDR_ON()       (palClearPad(GPIOE, GPIOE_LED_R))
+#define LEDR_OFF()      (palSetPad(GPIOE, GPIOE_LED_R))
+#define LEDR_TOGGLE()   (palTogglePad(GPIOE, GPIOE_LED_R))
+#define LEDY_ON()       (palSetPad(GPIOA, GPIOA_LED_Y))
+#define LEDY_OFF()      (palClearPad(GPIOA, GPIOA_LED_Y))
+#define LEDY_TOGGLE()   (palTogglePad(GPIOA, GPIOA_LED_Y))
+#define LEDB_ON()       (palSetPad(GPIOA, GPIOA_LED_B))
+#define LEDB_OFF()      (palClearPad(GPIOA, GPIOA_LED_B))
+#define LEDB_TOGGLE()   (palTogglePad(GPIOA, GPIOA_LED_B))
+
 /**
  * @brief   Enables the PAL subsystem.
  */
@@ -50,7 +63,7 @@
  * @brief   Enables the CAN subsystem.
  */
 #if !defined(HAL_USE_CAN) || defined(__DOXYGEN__)
-#define HAL_USE_CAN                 FALSE
+#define HAL_USE_CAN                 TRUE
 #endif
 
 /**
@@ -78,7 +91,7 @@
  * @brief   Enables the I2C subsystem.
  */
 #if !defined(HAL_USE_I2C) || defined(__DOXYGEN__)
-#define HAL_USE_I2C                 TRUE
+#define HAL_USE_I2C                 FALSE
 #endif
 
 /**
@@ -134,14 +147,14 @@
  * @brief   Enables the SERIAL subsystem.
  */
 #if !defined(HAL_USE_SERIAL) || defined(__DOXYGEN__)
-#define HAL_USE_SERIAL              TRUE
+#define HAL_USE_SERIAL              FALSE
 #endif
 
 /**
  * @brief   Enables the SERIAL over USB subsystem.
  */
 #if !defined(HAL_USE_SERIAL_USB) || defined(__DOXYGEN__)
-#define HAL_USE_SERIAL_USB          FALSE
+#define HAL_USE_SERIAL_USB          TRUE
 #endif
 
 /**
@@ -162,7 +175,7 @@
  * @brief   Enables the USB subsystem.
  */
 #if !defined(HAL_USE_USB) || defined(__DOXYGEN__)
-#define HAL_USE_USB                 FALSE
+#define HAL_USE_USB                 TRUE
 #endif
 
 /**

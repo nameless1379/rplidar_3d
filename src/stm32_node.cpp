@@ -160,7 +160,7 @@ int main(int argc, char * argv[])
           //return -2;
         }
 */
-        //printf("stepper angle: %f\n", nodes[0].stepper_angle * 180.0f/M_PI);
+        printf("stepper angle: %f\n", nodes[0].stepper_angle * 180.0f/M_PI);
         serial->publish_pos_msg(&pos_pub, nodes, "PCL2_frame");
 
         r.sleep();

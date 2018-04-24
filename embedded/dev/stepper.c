@@ -78,7 +78,7 @@ void stepper_init(const stepper_direction_t dir)
 
     STEPPER_TIM.tim->CR2 |= STM32_TIM_CR2_MMS(4);
     STEPPER_COUNTER.tim->SMCR |= STM32_TIM_SMCR_SMS(7);
-    STEPPER_COUNTER.tim->SMCR |= STM32_TIM_SMCR_TS(2);
+    STEPPER_COUNTER.tim->SMCR |= STM32_TIM_SMCR_TS(1); //Configured to be TIM8's slave
 
     STEPPER_COUNTER.tim->CR1 |= STM32_TIM_CR1_CEN;
     chThdSleepMilliseconds(1);

@@ -8,10 +8,9 @@
 #ifndef INC_CHASSIS_H_
 #define INC_CHASSIS_H_
 
-#include "adis16265.h"
 #include "canBusProcess.h"
 
-#define CHASSIS_CAN  &CAND1         // Later should be CAND2
+#define CHASSIS_CAN  &CAND2         // Later should be CAND2
 #define CHASSIS_CAN_EID  0x200
 
 #define CHASSIS_UPDATE_FREQ 500
@@ -37,10 +36,6 @@
 
 #define VEL_MAX    ((int16_t) 277)              //
 #define VEL_MIN    ((int16_t)-277)              //
-#define HEADING_MAX    6.0f
-#define HEADING_MIN    -6.0f
-#define HEADING_MAX_AUTO    2.0f
-#define HEADING_MIN_AUTO    -2.0f
 #define CHASSIS_GEAR_RATIO    27U
 
 #define ABS(x)     ( ((x) > 0) ? (x) : (-(x)) ) //return abs value of x
@@ -53,22 +48,6 @@ typedef enum {
   CHASSIS_DRIVE =   1,
   CHASSIS_HEADING = 2
 } chassis_dir_t;
-
-/* the radius of wheel(mm) */
-#define RADIUS     76
-/* the perimeter of wheel(mm) */
-#define PERIMETER 478
-
-/* chassis motor use 3508 default */
-/* define CHASSIS_EC60 to use EC60 */
-
-/* chassis motor use 3508 */
-/* the deceleration ratio of chassis motor */
-
-//  #define CHASSIS_DECELE_RATIO (1.0f/27.0f)
-/* single 3508 motor maximum speed, unit is rpm */
-#define MAX_WHEEL_RPM        310 //8000  //8347rpm = 3500mm/s
-/* chassis maximum translation speed, unit is mm/s */
 
 typedef enum {
   CHASSIS_UNINIT         = 0,
@@ -126,7 +105,6 @@ typedef struct{
                     //Which can be manually overriden
 
   ChassisEncoder_canStruct* _encoders;
-  PGyroStruct _pGyro;
 } chassisStruct;
 
 // MATH definition
@@ -140,6 +118,7 @@ void chassis_headingLockCmd(const uint8_t cmd);
 void chassis_autoCmd(const uint8_t dir, const float cmd);
 
 chassisStruct* chassis_get(void);
+float* chassis_getWheelOdeometry(void);
 uint32_t chassis_getError(void);
 
 void chassis_init(void);

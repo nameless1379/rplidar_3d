@@ -2,11 +2,10 @@
 #include "hal.h"
 
 #include "uart_host.h"
-#include "mpu6050.h"
+#include "mpu6500.h"
 #include "stepper.h"
-#include "tft_display.h"
 
-#define  NUM_SEGMENT 4U
+#define  NUM_SEGMENT 5U
 #define  RXBUF_START_SIZE  6U
 #define  RXBUF_CMD_SIZE    6U
 #define  RXBUF_SIZE  12U
@@ -19,7 +18,7 @@ static uint32_t timestamp;
 static uint8_t start_flag = 0;
 static const uint8_t start_seq[START_SEQ_SIZE] = {0xa5, 0x5a};
 static const float imu_data_invalid_seq[4] = {100.0f, 100.0f, 100.0f, 100.0f};
-static const uint8_t size_of_segments[NUM_SEGMENT] = {START_SEQ_SIZE, 16, 4, 4};
+static const uint8_t size_of_segments[NUM_SEGMENT] = {START_SEQ_SIZE, 16, 4, 12, 4};
 static uint8_t* segments[NUM_SEGMENT];
 
 static thread_t* uart_host_thread_p;
@@ -122,9 +121,13 @@ static THD_FUNCTION(uart_host_thread, p)
   (void)p;
   chRegSetThreadName("uart host transmitter");
 
+  float stepper_angle = 0.0f;
+
   uartStart(UART_TO_HOST, &uart_cfg_host);
   segments[0] = start_seq;
   segments[1] = (uint8_t*)(pIMU->qIMU);
+  segments[2] = (uint8_t*)&stepper_angle;
+  segments[3] = (uint8_t*)chassis_getWheelOdeometry(); //chassis odeometry data
   segments[NUM_SEGMENT - 1] = (uint8_t*)&timestamp;
 
   uint32_t tick = chVTGetSystemTimeX();
@@ -143,10 +146,6 @@ static THD_FUNCTION(uart_host_thread, p)
   uint32_t time_curr = ST2MS(chVTGetSystemTimeX());
   int32_t timestamp_sync = time_host - time_curr;
   timestamp = ST2MS(chVTGetSystemTimeX()) + timestamp_sync;
-  tft_printf(3,6,"Connected to ROS");
-
-  float stepper_angle = 0.0f;
-  segments[2] = (uint8_t*)&stepper_angle;
 
   for (i = 0; i < NUM_SEGMENT; i++)
     uart_host_send(segments[i], size_of_segments[i]);
@@ -169,7 +168,7 @@ static THD_FUNCTION(uart_host_thread, p)
 
     stepper_angle = stepper_get_angle();
 
-    if(pIMU->data_invalid)
+    if(pIMU->state != IMU_STATE_READY)
       segments[1] = (uint8_t*)imu_data_invalid_seq;
 
     timestamp = ST2MS(chVTGetSystemTimeX()) + timestamp_sync;
@@ -180,7 +179,7 @@ static THD_FUNCTION(uart_host_thread, p)
 
 void uart_host_init(void)
 {
-  pIMU = mpu6050_get();
+  pIMU = imu_get();
   uart_host_thread_p = chThdCreateStatic(uart_host_thread_wa, sizeof(uart_host_thread_wa),
                        NORMALPRIO,
                        uart_host_thread, NULL);

@@ -4,16 +4,23 @@
 #include "ch.h"
 #include "hal.h"
 
-#include "uart_host.h"
-#include "mpu6050.h"
-#include "calibrate_imu.h"
-#include "attitude.h"
-#include "stepper.h"
-
+#include "math_misc.h"
+#include "usbcfg.h"
 #include "flash.h"
 #include "chprintf.h"
-#include "tft_display.h"
-#include "math_misc.h"
+
+#include "canBusProcess.h"
+#include "dbus.h"
+#include "params.h"
+#include "uart_host.h"
+
+#include "mpu6500.h"
+#include "attitude.h"
+#include "imu_temp.h"
+#include "calibrate_sensor.h"
+
+#include "stepper.h"
+#include "chassis.h"
 
 void shellStart(void);
 

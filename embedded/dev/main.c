@@ -15,59 +15,68 @@
 */
 #include "main.h"
 
-static BaseSequentialStream* chp = (BaseSequentialStream*)SERIAL_CMD;
-static PIMUStruct pIMU;
-static const IMUConfigStruct imu1_conf = {&I2CD1, MPU6050_I2C_ADDR_A0_LOW,
-   MPU6050_ACCEL_SCALE_8G, MPU6050_GYRO_SCALE_1000};
-
+#define MPU6500_UPDATE_PERIOD_US 1000000U/MPU6500_UPDATE_FREQ
 static THD_WORKING_AREA(Attitude_thread_wa, 4096);
 static THD_FUNCTION(Attitude_thread, p)
 {
   chRegSetThreadName("IMU Attitude Estimator");
-  uint8_t errorCode;
 
-  PIMUStruct pIMU_1 = (PIMUStruct)p;
+  (void)p;
 
-  chThdSleepMilliseconds(100);
-  errorCode = attitude_imu_init(pIMU_1, &imu1_conf);
+  PIMUStruct pIMU = imu_get();
 
-  while(errorCode)
-  {
-    tft_printf(0,1,"E:IMU Init Failed: %d", errorCode);
-    pIMU->data_invalid = true;
-    chThdSleepMilliseconds(500);
-  }
+  static const IMUConfigStruct imu1_conf =
+    {&SPID5, MPU6500_ACCEL_SCALE_8G, MPU6500_GYRO_SCALE_1000, MPU6500_AXIS_REV_X};
+  imuInit(pIMU, &imu1_conf);
+
+  //static const magConfigStruct mag1_conf =
+  //  {IST8310_ADDR_FLOATING, 200, IST8310_AXIS_REV_NO};
+  //ist8310_init(&mag1_conf);
+
+  //Check temperature feedback before starting temp controller
+  imuGetData(pIMU);
+  if(pIMU->temperature > 0.0f)
+    tempControllerInit();
+  else
+    pIMU->errorCode |= IMU_TEMP_ERROR;
+
+  attitude_imu_init(pIMU);
 
   uint32_t tick = chVTGetSystemTimeX();
+
   while(true)
   {
-    tick += US2ST(MPU6050_UPDATE_PERIOD);
+    tick += US2ST(MPU6500_UPDATE_PERIOD_US);
     if(chVTGetSystemTimeX() < tick)
       chThdSleepUntil(tick);
     else
     {
       tick = chVTGetSystemTimeX();
-      palSetPad(GPIOD,GPIOD_LED4);
+      pIMU->errorCode |= IMU_LOSE_FRAME;
     }
 
-    errorCode = attitude_update(pIMU_1);
+    if(pIMU->state == IMU_STATE_HEATING && pIMU->temperature > 61.0f)
+      pIMU->state = IMU_STATE_READY;
+    else if(pIMU->temperature < 55.0f || pIMU->temperature > 70.0f)
+      pIMU->errorCode |= IMU_TEMP_WARNING;
 
-    while(errorCode)
-    {
-      palSetPad(GPIOD,GPIOD_LED3);
-      pIMU->data_invalid = true;
-      chprintf(0,1,"E:IMU Reading Error %d", errorCode);
-      chThdSleepMilliseconds(500);
-    }
+    imuGetData(pIMU);
+    //ist8310_update();
+    attitude_update(pIMU);
 
-    if(pIMU_1->accelerometer_not_calibrated || pIMU_1->gyroscope_not_calibrated)
+    if(pIMU->accelerometer_not_calibrated || pIMU->gyroscope_not_calibrated)
     {
       chSysLock();
-      chThdSuspendS(&(pIMU_1->imu_Thd));
+      chThdSuspendS(&(pIMU->imu_Thd));
       chSysUnlock();
     }
   }
 }
+
+#define attitude_init() (chThdCreateStatic(Attitude_thread_wa, sizeof(Attitude_thread_wa), \
+                          NORMALPRIO + 5, \
+                          Attitude_thread, NULL))
+
 
 /*
  * Application entry point.
@@ -85,26 +94,27 @@ int main(void) {
   chSysInit();
 
   shellStart();
-  tft_init(TFT_HORIZONTAL, CYAN,BLACK,BLACK);
-  tft_printf(1,0,"RPLIDAR CONTROLLER");
-  tft_printf(3,7,"Edward ZHANG");
+  params_init();
+  attitude_init();
+
+  can_processInit();
+  RC_init();
 
   stepper_init(STEPPER_CCW);
+  chassis_init();
+
+  chassis_setSpeedLimit(0.2f);
+  chassis_setAcclLimit(1.0f);
+
+  chThdSleepSeconds(1);
   stepper_setvelocity(2*M_PI);
-
-  pIMU = mpu6050_get();
-
-  chThdCreateStatic(Attitude_thread_wa, sizeof(Attitude_thread_wa),
-                    NORMALPRIO + 5,
-                    Attitude_thread, pIMU);
-
-  chThdSleepMilliseconds(10);
   uart_host_init();
 
   while (true)
   {
-    palTogglePad(GPIOB,GPIOB_LED);
     chThdSleepMilliseconds(200);
+  //  can_motorSetCurrent(&CAND2, 0x200, 500, 500, 0, 0);
+    //chprintf((BaseSequentialStream*)&SDU1,"Fuck\r\n");
   }
 
   return 0;
