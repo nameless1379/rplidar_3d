@@ -90,6 +90,7 @@ bool stepper_set_speed(rplidar_3d::stm32_cmd::Request  &req,
   return IS_FAIL(serial->transmit_stepper_cmd(req.speed));
 }
 
+#define CONNECTION_ERROR_MAX 20U
 int main(int argc, char * argv[])
 {
     ros::init(argc, argv, "stm32_serial_node");
@@ -145,6 +146,7 @@ int main(int argc, char * argv[])
     printf("Started receiving data...\n");
 
     ros::Rate r(250);
+    uint32_t error_counter = 0;
     while (ros::ok())
     {
         stm32_serial_packet_t nodes[360*2];
@@ -154,9 +156,17 @@ int main(int argc, char * argv[])
 
         if (op_result != RESULT_OK)
         {
-          printf("W: Connection lost!\n");
-          return -1;
+          error_counter++;
+          if(error_counter > CONNECTION_ERROR_MAX)
+          {
+            printf("E: Connection lost!\n");
+            return -1;
+          }
         }
+        else if(error_counter > 5)
+          error_counter -= 5;
+        else
+          error_counter = 0;
 /*
         if (nodes[0].imu_data[0] == 100.0f)
         {
