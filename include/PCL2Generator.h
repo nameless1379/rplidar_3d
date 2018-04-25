@@ -45,7 +45,7 @@
 
 #include "sensor_msgs/LaserScan.h"
 #include <sensor_msgs/PointCloud2.h>
-#include "geometry_msgs/QuaternionStamped.h"
+#include "geometry_msgs/PoseStamped.h"
 
 #define POS_BUFFER_SIZE 400U
 
@@ -143,14 +143,13 @@ namespace laser_geometry
         scan_callBack_(scan);
       }
 
-      void pos_callBack(const geometry_msgs::QuaternionStamped::ConstPtr& pos)
+      void pos_callBack(const geometry_msgs::PoseStamped::ConstPtr& pos)
       {
         pos_buffer_num++;
         if(pos_buffer_num == POS_BUFFER_SIZE)
           pos_buffer_num = 0;
 
-        pos_buffer[pos_buffer_num].header = pos->header;
-        pos_buffer[pos_buffer_num].quaternion = pos->quaternion;
+        pos_buffer[pos_buffer_num] = *pos;
       }
 
       void projectLaser (const sensor_msgs::LaserScan& scan_in,
@@ -207,7 +206,7 @@ namespace laser_geometry
       boost::mutex guv_mutex_;
 
       int pos_buffer_num;
-      geometry_msgs::QuaternionStamped pos_buffer[POS_BUFFER_SIZE];
+      geometry_msgs::PoseStamped pos_buffer[POS_BUFFER_SIZE];
 
       sensor_msgs::PointCloud2 cloud; //Stores the point cloud data for two revolutions of stepper motor
       const double sync; //To better synchonize the on-board sensor data and LIDAR,

@@ -82,6 +82,7 @@ void cmd_test(BaseSequentialStream * chp, int argc, char *argv[])
 {
   (void) argc,argv;
   PIMUStruct PIMU = imu_get();
+  float* odeometry = chassis_wheelOdeometryGet();
 
   chprintf(chp,"accelFiltered[X]: %f\r\n",PIMU->accelFiltered[X]);
   chprintf(chp,"accelFiltered[Y]: %f\r\n",PIMU->accelFiltered[Y]);
@@ -90,6 +91,10 @@ void cmd_test(BaseSequentialStream * chp, int argc, char *argv[])
   chprintf(chp,"Roll:  %f\r\n",PIMU->euler_angle[Roll]);
   chprintf(chp,"Pitch: %f\r\n",PIMU->euler_angle[Pitch]);
   chprintf(chp,"Yaw:   %f\r\n",PIMU->euler_angle[Yaw]);
+
+  chprintf(chp,"strafe:  %f\r\n",  odeometry[CHASSIS_STRAFE]);
+  chprintf(chp,"drive: %f\r\n",    odeometry[CHASSIS_DRIVE]);
+  chprintf(chp,"heading:   %f\r\n",odeometry[CHASSIS_HEADING]);
 
   chprintf(chp,"Stepper angle: %f\r\n", stepper_get_angle());
 }

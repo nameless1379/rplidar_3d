@@ -45,10 +45,9 @@ uint32_t chassis_getError(void)
   return errorFlag;
 }
 
-float* chassis_getWheelOdeometry(void)
+float* chassis_wheelOdeometryGet(void)
 {
-  if(true)
-    return wheel_odeometry;
+  return wheel_odeometry;
 }
 
 void chassis_setSpeedLimit(const float speed)
@@ -135,7 +134,7 @@ static void chassis_inputCmd(void)
   heading_rc = boundOutput(heading_rc, 660 * rc_speed_limit);
 }
 
-#define   CHASSIS_ANGLE_PSC 7.6699e-4 //2*M_PI/0x1FFF
+#define   CHASSIS_POS_PSC 2.817631955e-3 //MECCANUM_PERIMETER/(2* Pi * CHASSIS_GEAR_RATIO)
 #define   CHASSIS_SPEED_PSC 1.0f/((float)CHASSIS_GEAR_RATIO)
 #define   CHASSIS_CONNECTION_ERROR_COUNT 20U
 static void chassis_encoderUpdate(void)
@@ -148,9 +147,10 @@ static void chassis_encoderUpdate(void)
       //Check validiaty of can connection
       chassis._encoders[i].updated = false;
 
-      //float pos_input = chassis._encoders[i].raw_angle*CHASSIS_ANGLE_PSC;
       float speed_input = chassis._encoders[i].raw_speed*CHASSIS_SPEED_PSC;
       chassis._motors[i]._speed = lpfilter_apply(&lp_speed[i], speed_input);
+      chassis._motors[i]._pos = chassis._encoders[i].radian_angle * CHASSIS_POS_PSC;
+
       chassis._motors[i]._wait_count = 1;
     }
     else
@@ -165,8 +165,32 @@ static void chassis_encoderUpdate(void)
       }
     }
   }
-  #ifdef CHASSIS_USE_POS_MOTOR
-  #endif
+}
+
+void chassis_wheelOdeometryReset(void)
+{
+  memset(wheel_odeometry, 0, 12);
+  uint8_t i;
+  for (i = 0; i < CHASSIS_MOTOR_NUM; i++)
+    chassis._motors[i]._pos_offset = chassis._motors[i]._pos;
+}
+
+
+static void chassis_wheelOdeometryUpdate(void)
+{
+  float wheel_pos[4];
+
+  uint8_t i;
+  for (i = 0; i < CHASSIS_MOTOR_NUM; i++)
+    wheel_pos[i] = chassis._motors[i]._pos - chassis._motors[i]._pos_offset;
+
+  float drive_sum = wheel_pos[FRONT_LEFT] + wheel_pos[BACK_LEFT]
+                  - wheel_pos[FRONT_RIGHT] - wheel_pos[BACK_RIGHT];
+  float strafe_sum = wheel_pos[FRONT_LEFT] - wheel_pos[BACK_LEFT]
+                  + wheel_pos[FRONT_RIGHT] - wheel_pos[BACK_RIGHT];
+
+  wheel_odeometry[CHASSIS_STRAFE] = strafe_sum / 4;
+  wheel_odeometry[CHASSIS_DRIVE] = drive_sum / 4;
 }
 
 #define OUTPUT_MAX  30000
@@ -224,6 +248,7 @@ static THD_FUNCTION(chassis_control, p)
     }
 
     chassis_encoderUpdate();
+    chassis_wheelOdeometryUpdate();
 
     if(chassis.state & CHASSIS_RUNNING)
     {

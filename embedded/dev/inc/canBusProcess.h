@@ -24,6 +24,8 @@
 #define CAN_GIMBAL_YAW_FEEDBACK_MSG_ID              0x205
 #define CAN_GIMBAL_PITCH_FEEDBACK_MSG_ID            0x206
 
+#define CAN_ENCODER_RANGE           8192            // 0x2000
+
 typedef enum
 {
   GIMBAL_YAW = 0,
@@ -42,12 +44,23 @@ typedef struct {
   uint16_t raw_angle;
   int16_t  raw_current;
   int16_t  current_setpoint;
+
+  int32_t round_count;
+  float radian_angle; // Continuous
+
   bool updated;
 } GimbalEncoder_canStruct;
 
 typedef struct {
   uint16_t raw_angle;
   int16_t  raw_speed;
+  int16_t act_current;
+  uint8_t temperature;
+
+  int32_t round_count;
+  int32_t total_ecd;
+  float radian_angle; // Continuous
+
   bool updated;
 } ChassisEncoder_canStruct;
 

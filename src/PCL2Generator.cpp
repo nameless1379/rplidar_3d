@@ -426,6 +426,7 @@ namespace laser_geometry
     ros::Time start = scan->header.stamp - ros::Duration(sync),
               end = start + ros::Duration(scan->scan_time);
 
+    tf2::Vector3 p2;
     tf2::Quaternion q2;
 
     int buffer_num = pos_buffer_num;
@@ -440,19 +441,23 @@ namespace laser_geometry
 
       if(pos_buffer[buffer_num].header.stamp < end && !end_found)
       {
-          q2 = tf2::Quaternion(pos_buffer[buffer_num].quaternion.x, pos_buffer[buffer_num].quaternion.y,
-                pos_buffer[buffer_num].quaternion.z, pos_buffer[buffer_num].quaternion.w);
+          q2 = tf2::Quaternion(pos_buffer[buffer_num].pose.orientation.x, pos_buffer[buffer_num].pose.orientation.y,
+                pos_buffer[buffer_num].pose.orientation.z, pos_buffer[buffer_num].pose.orientation.w);
+          p2 = tf2::Vector3(pos_buffer[buffer_num].pose.position.x,
+                            pos_buffer[buffer_num].pose.position.y,
+                            pos_buffer[buffer_num].pose.position.z);
           end_found = true;
       }
       if(pos_buffer[buffer_num].header.stamp < start)
         break;
     }
 
-    tf2::Quaternion q1(pos_buffer[buffer_num].quaternion.x, pos_buffer[buffer_num].quaternion.y,
-                       pos_buffer[buffer_num].quaternion.z, pos_buffer[buffer_num].quaternion.w);
-    transformLaserScanToPointCloud ("PCL2_frame",
-                                    *scan, new_cloud,
-                                    q2,tf2::Vector3(0, 0, 0),q1,tf2::Vector3(0, 0, 0));
+    tf2::Quaternion q1(pos_buffer[buffer_num].pose.orientation.x, pos_buffer[buffer_num].pose.orientation.y,
+                       pos_buffer[buffer_num].pose.orientation.z, pos_buffer[buffer_num].pose.orientation.w);
+    tf2::Vector3    p1(pos_buffer[buffer_num].pose.position.x,
+                       pos_buffer[buffer_num].pose.position.y,
+                       pos_buffer[buffer_num].pose.position.z);
+    transformLaserScanToPointCloud ("PCL2_frame", *scan, new_cloud, q2, p2, q1, p1);
     append_cloud(new_cloud);
     cloud_pub.publish(cloud);
   }
@@ -466,9 +471,12 @@ int main(int argc, char * argv[])
     ros::NodeHandle nh_private("~");
 
     int points = 0;
-    nh_private.param<int>("Points_in_Cloud", points, 0);
+    double sync = 0.135;
 
-    laser_geometry::LaserProjection Laser(nh, points,0.135);
+    nh_private.param<int>("Points_in_Cloud", points, 0);
+    nh_private.param<double>("Sync", sync, 0.135);
+
+    laser_geometry::LaserProjection Laser(nh, points, sync);
 
     ros::spin();
 

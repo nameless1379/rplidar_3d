@@ -1313,7 +1313,7 @@
                                       PIN_ODR_HIGH(GPIOI_PIN4) |             \
                                       PIN_ODR_HIGH(GPIOI_TIM8_CH1) |             \
                                       PIN_ODR_HIGH(GPIOI_TIM8_CH2) |             \
-                                      PIN_ODR_HIGH(GPIOI_TIM8_CH3) |             \
+                                      PIN_ODR_LOW(GPIOI_TIM8_CH3) |             \
                                       PIN_ODR_HIGH(GPIOI_PIN8) |             \
                                       PIN_ODR_HIGH(GPIOI_PIN9) |             \
                                       PIN_ODR_HIGH(GPIOI_PIN10) |            \

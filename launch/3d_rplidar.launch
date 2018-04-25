@@ -10,11 +10,12 @@
   <node name= "stm32Node"          pkg="rplidar_3d"  type="stm32Node" output="screen">
   <param name="serial_port"         type="string" value="/dev/ttyUSB1"/>
   <param name="serial_baudrate"     type="int"    value="115200"/>
-  <param name="stepper_RPM"         type="int"    value="62"/>
+  <param name="stepper_RPM"         type="int"    value="67"/>
   </node>
 
   <node name="PCLGen"   pkg="rplidar_3d"  type="PCLGen" output="screen">
   <param name="Points_in_Cloud"         type="int"     value="8000"/>
+  <param name="Sync"                    type="double"   value="0.16"/>
   </node>
 
 

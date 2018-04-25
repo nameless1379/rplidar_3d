@@ -9,5 +9,6 @@
 
 uint8_t attitude_imu_init(PIMUStruct pIMU);
 uint8_t attitude_update(PIMUStruct pIMU);
+void    attitude_resetYaw(PIMUStruct pIMU, const float yaw);
 
 #endif

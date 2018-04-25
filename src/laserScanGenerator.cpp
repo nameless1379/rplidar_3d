@@ -1,6 +1,6 @@
 #include "ros/ros.h"
 #include "sensor_msgs/LaserScan.h"
-#include "geometry_msgs/QuaternionStamped.h"
+#include "geometry_msgs/PoseStamped.h"
 
 #include <tf2/LinearMath/Transform.h>
 
@@ -10,7 +10,7 @@ double stepper_speed_sim;
 
 void publish_pos_msg(ros::Publisher *pub, std::string frame_id)
 {
-    geometry_msgs::QuaternionStamped pos_msg;
+    geometry_msgs::PoseStamped pos_msg;
 
     static float stepper_angle = 0.0f; //Sim stepper angle data
 
@@ -24,10 +24,14 @@ void publish_pos_msg(ros::Publisher *pub, std::string frame_id)
     //q.setEulerZYX(stepper_angle,DEG2RAD(22.5),0);
     q.setEulerZYX(stepper_angle,DEG2RAD(22.5),0);
 
-    pos_msg.quaternion.x = (double)(q.x());
-    pos_msg.quaternion.y = (double)(q.y());
-    pos_msg.quaternion.z = (double)(q.z());
-    pos_msg.quaternion.w = (double)(q.w());
+    pos_msg.pose.position.x = 0.0;
+    pos_msg.pose.position.y = 0.0;
+    pos_msg.pose.position.z = 0.0;
+
+    pos_msg.pose.orientation.x = (double)(q.x());
+    pos_msg.pose.orientation.y = (double)(q.y());
+    pos_msg.pose.orientation.z = (double)(q.z());
+    pos_msg.pose.orientation.w = (double)(q.w());
 
     pub->publish(pos_msg);
 }
@@ -95,7 +99,7 @@ int main(int argc, char * argv[])
     ros::NodeHandle nh;
     ros::NodeHandle nh_private("~");
     ros::Publisher scan_pub = nh.advertise<sensor_msgs::LaserScan>("/gen_scan", 1000);
-    ros::Publisher pos_pub = nh.advertise<geometry_msgs::QuaternionStamped>("/gen_pos", 1000);
+    ros::Publisher pos_pub = nh.advertise<geometry_msgs::PoseStamped>("/gen_pos", 1000);
 
     nh_private.param<double>("Rotation_speed", stepper_speed_sim, 3.7);
 

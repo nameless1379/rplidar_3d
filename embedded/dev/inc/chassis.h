@@ -13,7 +13,7 @@
 #define CHASSIS_CAN  &CAND2         // Later should be CAND2
 #define CHASSIS_CAN_EID  0x200
 
-#define CHASSIS_UPDATE_FREQ 500
+#define CHASSIS_UPDATE_FREQ 1000
 #define CHASSIS_UPDATE_PERIOD_US 1000000/CHASSIS_UPDATE_FREQ
 #define CHASSIS_HEADING_CONTROL
 
@@ -43,11 +43,27 @@
 #define CHASSIS_USE_POS_MOTOR
 #define CHASSIS_DISABLE_AUTO      200000.0f
 
+/* the radius of wheel(mm) */
+#define MECCANUM_RADIUS     76
+/* the perimeter of wheel(mm) */
+#define MECCANUM_PERIMETER  478
+
+/* wheel track distance(mm) */
+#define CHASSIS_WHEELTRACK  530 //403
+/* wheelbase distance(mm) */
+#define CHASSIS_WHEELBASE 520 //385
+
 typedef enum {
   CHASSIS_STRAFE =  0,
   CHASSIS_DRIVE =   1,
   CHASSIS_HEADING = 2
 } chassis_dir_t;
+
+typedef enum {
+  CHASSIS_Y =  0,
+  CHASSIS_X =   1,
+  CHASSIS_YAW = 2
+} chassis_odeometry_t;
 
 typedef enum {
   CHASSIS_UNINIT         = 0,
@@ -82,22 +98,16 @@ typedef struct{
   float _speed;
   float pos_sp;
   float _pos;
-
-  int32_t rev;
-  float _prev;
+  float _pos_offset; //Wheel odeometry initialization
 
   uint8_t _wait_count;
   uint8_t in_position;
 } motorPosStruct;
 
 typedef struct{
-  motorStruct _motors[CHASSIS_MOTOR_NUM];
+  motorPosStruct _motors[CHASSIS_MOTOR_NUM];
   chassis_state_t state;
   chassis_error_t errorFlag;
-
-  #ifdef CHASSIS_USE_POS_MOTOR
-    motorPosStruct pos_motors[4];
-  #endif
 
   float heading_cmd;
   float drive_cmd;
@@ -109,16 +119,12 @@ typedef struct{
 
 // MATH definition
 
-void chassis_killAutoDriver(void);
-void chassis_tempSuspend(const uint8_t cmd);
 void chassis_setSpeedLimit(const float speed_limit);
 void chassis_setAcclLimit(const float accl_limit);
-void chassis_reverseCmd(const uint8_t cmd);
-void chassis_headingLockCmd(const uint8_t cmd);
-void chassis_autoCmd(const uint8_t dir, const float cmd);
 
 chassisStruct* chassis_get(void);
-float* chassis_getWheelOdeometry(void);
+float* chassis_wheelOdeometryGet(void);
+void chassis_wheelOdeometryReset(void);
 uint32_t chassis_getError(void);
 
 void chassis_init(void);

@@ -127,7 +127,7 @@ static THD_FUNCTION(uart_host_thread, p)
   segments[0] = start_seq;
   segments[1] = (uint8_t*)(pIMU->qIMU);
   segments[2] = (uint8_t*)&stepper_angle;
-  segments[3] = (uint8_t*)chassis_getWheelOdeometry(); //chassis odeometry data
+  segments[3] = (uint8_t*)chassis_wheelOdeometryGet(); //chassis odeometry data
   segments[NUM_SEGMENT - 1] = (uint8_t*)&timestamp;
 
   uint32_t tick = chVTGetSystemTimeX();
@@ -149,6 +149,9 @@ static THD_FUNCTION(uart_host_thread, p)
 
   for (i = 0; i < NUM_SEGMENT; i++)
     uart_host_send(segments[i], size_of_segments[i]);
+
+  attitude_resetYaw(pIMU, 0.0f);
+  chassis_wheelOdeometryReset();
 
   chThdCreateStatic(uart_receive_thread_wa, sizeof(uart_receive_thread_wa),
                     NORMALPRIO + 7,

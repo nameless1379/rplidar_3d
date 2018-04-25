@@ -61,8 +61,10 @@ float stepper_get_angle(void)
  */
 void stepper_init(const stepper_direction_t dir)
 {
+    palSetPad(STEPPER_EN_GPIO,STEPPER_EN_PIN); //ENABLE
+    chThdSleepMilliseconds(500);
+
     gptStart(&STEPPER_COUNTER, &stepper_counter_cfg);
-    palSetPad(STEPPER_EN_GPIO,STEPPER_EN_PIN);
     pwmStart(&STEPPER_TIM, &stepper_pwmcfg);
     /* initialize the step counter*/
 
@@ -96,8 +98,11 @@ void stepper_setdir(const stepper_direction_t dir)
   stepper.dir = dir;
   if(stepper.state != STEPPER_STATE_NOT_INIT)
   {
-    STEPPER_TIM.tim->CCR[STEPPER_DIR_CH] = (dir == STEPPER_CW ? 0 : stepper.ARR);
-    STEPPER_COUNTER.tim->CR1 |= (dir == STEPPER_CW ? STM32_TIM_CR1_DIR :0);
+    STEPPER_TIM.tim->CCR[STEPPER_DIR_CH] = (dir == STEPPER_CCW ? 0 : stepper.ARR);
+    if(dir == STEPPER_CW)
+      STEPPER_COUNTER.tim->CR1 |= STM32_TIM_CR1_DIR;
+    else
+      STEPPER_COUNTER.tim->CR1 &= ~STM32_TIM_CR1_DIR;
   }
 }
 

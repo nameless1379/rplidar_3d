@@ -88,6 +88,8 @@ uint8_t attitude_update(PIMUStruct pIMU)
       pIMU->euler_angle[Yaw] = pIMU->rev*2*M_PI + euler_angle[Yaw];
 
       pIMU->prev_yaw = euler_angle[Yaw];
+      pIMU->d_euler_angle[Yaw] = (sinf(pIMU->euler_angle[Roll])*corr[Y] +
+        cosf(pIMU->euler_angle[Roll]) * corr[Z]) / cosf(pIMU->euler_angle[Pitch]);
     #endif
 
     return IMU_OK;
@@ -120,4 +122,13 @@ uint8_t attitude_imu_init(PIMUStruct pIMU)
   #endif
 
   return IMU_OK;
+}
+
+
+void attitude_resetYaw(PIMUStruct pIMU, const float yaw)
+{
+  chSysLock();
+  pIMU->euler_angle[Yaw] = yaw;
+  euler2quarternion(pIMU->euler_angle, pIMU->qIMU);
+  chSysUnlock();
 }

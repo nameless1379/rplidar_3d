@@ -44,6 +44,8 @@ static THD_FUNCTION(Attitude_thread, p)
 
   uint32_t tick = chVTGetSystemTimeX();
 
+  LEDY_ON();
+
   while(true)
   {
     tick += US2ST(MPU6500_UPDATE_PERIOD_US);
@@ -56,7 +58,10 @@ static THD_FUNCTION(Attitude_thread, p)
     }
 
     if(pIMU->state == IMU_STATE_HEATING && pIMU->temperature > 61.0f)
+    {
+      LEDY_OFF();
       pIMU->state = IMU_STATE_READY;
+    }
     else if(pIMU->temperature < 55.0f || pIMU->temperature > 70.0f)
       pIMU->errorCode |= IMU_TEMP_WARNING;
 
@@ -100,21 +105,38 @@ int main(void) {
   can_processInit();
   RC_init();
 
-  stepper_init(STEPPER_CCW);
   chassis_init();
-
   chassis_setSpeedLimit(0.2f);
   chassis_setAcclLimit(1.0f);
 
-  chThdSleepSeconds(1);
+  while(palReadPad(GPIOF, GPIOF_SKEY))
+    chThdSleepMilliseconds(200);
+
+  stepper_init(STEPPER_CCW);
   stepper_setvelocity(2*M_PI);
+
   uart_host_init();
 
   while (true)
   {
     chThdSleepMilliseconds(200);
-  //  can_motorSetCurrent(&CAND2, 0x200, 500, 500, 0, 0);
-    //chprintf((BaseSequentialStream*)&SDU1,"Fuck\r\n");
+    if(!palReadPad(GPIOF, GPIOF_SKEY))
+      {
+        chThdSleepMilliseconds(100);
+        if(!palReadPad(GPIOF, GPIOF_SKEY))
+        {
+          LEDY_ON();
+          {
+            __DSB();                              /* Ensure all outstanding memory accesses included
+                                                       buffered write are completed before reset */
+            SCB->AIRCR  = ((0x5FA << SCB_AIRCR_VECTKEY_Pos)      |
+                             (SCB->AIRCR & SCB_AIRCR_PRIGROUP_Msk) |
+                              SCB_AIRCR_SYSRESETREQ_Msk);      /* Keep priority group unchanged */
+            __DSB();                               /* Ensure completion of memory access */
+            while(1);
+          }
+        }
+    }
   }
 
   return 0;
