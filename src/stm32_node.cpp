@@ -67,16 +67,16 @@ void stm32_serial::publish_pos_msg(ros::Publisher *pub, stm32_serial_packet_t *n
     else
       q1  = tf2::Quaternion::getIdentity();
 
-    q2 *= q1;
+    q1 *= q2;
 
     pos_msg.pose.position.x = node->wheel_odeometry[1];
     pos_msg.pose.position.y = node->wheel_odeometry[0];
     pos_msg.pose.position.z = 0.0;
 
-    pos_msg.pose.orientation.x = (double)(q2.x());
-    pos_msg.pose.orientation.y = (double)(q2.y());
-    pos_msg.pose.orientation.z = (double)(q2.z());
-    pos_msg.pose.orientation.w = (double)(q2.w());
+    pos_msg.pose.orientation.x = (double)(q1.x());
+    pos_msg.pose.orientation.y = (double)(q1.y());
+    pos_msg.pose.orientation.z = (double)(q1.z());
+    pos_msg.pose.orientation.w = (double)(q1.w());
 
     pub->publish(pos_msg);
 }
@@ -174,8 +174,9 @@ int main(int argc, char * argv[])
           //return -2;
         }
 */
-        printf("Y: %f\tX: %f\n", nodes[0].wheel_odeometry[0], nodes[0].wheel_odeometry[1]);
+        //printf("Y: %f\tX: %f\n", nodes[0].wheel_odeometry[0], nodes[0].wheel_odeometry[1]);
         //printf("stepper: %f\n", nodes[0].stepper_angle * 180/M_PI);
+    //    printf("yaw:%f\n", yaw);
         serial->publish_pos_msg(&pos_pub, nodes, "PCL2_frame");
 
         r.sleep();
