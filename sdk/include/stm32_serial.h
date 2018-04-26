@@ -13,6 +13,11 @@
 #define DEFAULT_TIMEOUT  2000
 #define MAX_STM32_PACKETS 2048
 #define MAX_SYNC_ERROR  20
+#define TX_BUFFER_SIZE  15
+
+#define TX_HANDSHAKE_HEADER 0x00
+#define TX_STEPPER_HEADER   0x01
+#define TX_POS_HEADER       0x02
 
 typedef struct {
   _u16 sync;

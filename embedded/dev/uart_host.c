@@ -6,9 +6,9 @@
 #include "stepper.h"
 
 #define  NUM_SEGMENT 5U
-#define  RXBUF_START_SIZE  6U
-#define  RXBUF_CMD_SIZE    6U
-#define  RXBUF_SIZE  12U
+#define  RXBUF_START_SIZE  15U
+#define  RXBUF_CMD_SIZE    15U
+#define  RXBUF_SIZE  15U
 #define  START_SEQ_SIZE 2U
 
 /* Put Datas to transfer here*/
@@ -55,7 +55,7 @@ static void rxend(UARTDriver *uartp) {
 
   if(uartp == UART_TO_HOST && compare_input())
   {
-    if(!start_flag)
+    if(!start_flag && rxbuf[2] == 0x00)
     {
       start_flag = 1;
       chSysLockFromISR();
@@ -64,15 +64,22 @@ static void rxend(UARTDriver *uartp) {
     }
     else
     {
-      float stepper_velcmd = *((float*)(rxbuf + 2));
-      if(stepper_velcmd == 0.0f)
-        stepper_stop();
-      else
-        stepper_setvelocity(stepper_velcmd);
+      switch(rxbuf[2])
+      {
+        case 0x01:
+          float stepper_velcmd = *((float*)(rxbuf + 3));
+          if(stepper_velcmd == 0.0f)
+            stepper_stop();
+          else
+            stepper_setvelocity(stepper_velcmd);
+          break;
+        case 0x02:
+          break;
 
-      chSysLockFromISR();
-      chThdResumeI(&uart_receive_thread_handler, MSG_OK);
-      chSysUnlockFromISR();
+        chSysLockFromISR();
+        chThdResumeI(&uart_receive_thread_handler, MSG_OK);
+        chSysUnlockFromISR();
+      }
     }
   }
 }
@@ -142,7 +149,7 @@ static THD_FUNCTION(uart_host_thread, p)
     chSysUnlock();
   }
 
-  uint32_t time_host = *((uint32_t*)(rxbuf+2));
+  uint32_t time_host = *((uint32_t*)(rxbuf+3));
   uint32_t time_curr = ST2MS(chVTGetSystemTimeX());
   int32_t timestamp_sync = time_host - time_curr;
   timestamp = ST2MS(chVTGetSystemTimeX()) + timestamp_sync;
