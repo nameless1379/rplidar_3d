@@ -69,8 +69,8 @@ void stm32_serial::publish_pos_msg(ros::Publisher *pub, stm32_serial_packet_t *n
 
     q2 *= q1;
 
-    pos_msg.pose.position.x = 0.0;
-    pos_msg.pose.position.y = 0.0;
+    pos_msg.pose.position.x = node->wheel_odeometry[1];
+    pos_msg.pose.position.y = node->wheel_odeometry[0];
     pos_msg.pose.position.z = 0.0;
 
     pos_msg.pose.orientation.x = (double)(q2.x());
@@ -174,8 +174,8 @@ int main(int argc, char * argv[])
           //return -2;
         }
 */
-        //printf("strafe: %f\tdrive: %f\n", nodes[0].wheel_odeometry[0], nodes[0].wheel_odeometry[1]);
-        printf("stepper: %f\n", nodes[0].stepper_angle * 180/M_PI);
+        printf("Y: %f\tX: %f\n", nodes[0].wheel_odeometry[0], nodes[0].wheel_odeometry[1]);
+        //printf("stepper: %f\n", nodes[0].stepper_angle * 180/M_PI);
         serial->publish_pos_msg(&pos_pub, nodes, "PCL2_frame");
 
         r.sleep();

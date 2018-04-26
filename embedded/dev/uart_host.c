@@ -4,6 +4,8 @@
 #include "uart_host.h"
 #include "mpu6500.h"
 #include "stepper.h"
+#include "chassis.h"
+#include "attitude.h"
 
 #define  NUM_SEGMENT 5U
 #define  RXBUF_START_SIZE  15U
@@ -64,10 +66,11 @@ static void rxend(UARTDriver *uartp) {
     }
     else
     {
+      float stepper_velcmd;
       switch(rxbuf[2])
       {
         case 0x01:
-          float stepper_velcmd = *((float*)(rxbuf + 3));
+          stepper_velcmd = *((float*)(rxbuf + 3));
           if(stepper_velcmd == 0.0f)
             stepper_stop();
           else

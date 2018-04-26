@@ -171,6 +171,8 @@ void chassis_wheelOdeometryReset(void)
 {
   memset(wheel_odeometry, 0, 12);
   uint8_t i;
+
+  chassis._init_yaw = pIMU->euler_angle[Yaw];
   for (i = 0; i < CHASSIS_MOTOR_NUM; i++)
     chassis._motors[i]._pos_offset = chassis._motors[i]._pos;
 }
@@ -182,15 +184,19 @@ static void chassis_wheelOdeometryUpdate(void)
 
   uint8_t i;
   for (i = 0; i < CHASSIS_MOTOR_NUM; i++)
+  {
     wheel_pos[i] = chassis._motors[i]._pos - chassis._motors[i]._pos_offset;
+    chassis._motors[i]._pos_offset = chassis._motors[i]._pos;
+  }
 
-  float drive_sum = wheel_pos[FRONT_LEFT] + wheel_pos[BACK_LEFT]
-                  - wheel_pos[FRONT_RIGHT] - wheel_pos[BACK_RIGHT];
-  float strafe_sum = wheel_pos[FRONT_LEFT] - wheel_pos[BACK_LEFT]
-                  + wheel_pos[FRONT_RIGHT] - wheel_pos[BACK_RIGHT];
+  float drive_sum = (wheel_pos[FRONT_LEFT] + wheel_pos[BACK_LEFT]
+                  - wheel_pos[FRONT_RIGHT] - wheel_pos[BACK_RIGHT])/4;
+  float strafe_sum = (wheel_pos[FRONT_LEFT] - wheel_pos[BACK_LEFT]
+                  + wheel_pos[FRONT_RIGHT] - wheel_pos[BACK_RIGHT])/4;
+  float yaw_diff = pIMU->euler_angle[Yaw] - chassis._init_yaw;
 
-  wheel_odeometry[CHASSIS_STRAFE] = strafe_sum / 4;
-  wheel_odeometry[CHASSIS_DRIVE] = drive_sum / 4;
+  wheel_odeometry[CHASSIS_Y] -= strafe_sum * cosf(yaw_diff) - drive_sum * sinf(yaw_diff); 
+  wheel_odeometry[CHASSIS_X] += drive_sum * cosf(yaw_diff) + strafe_sum * sinf(yaw_diff);
 }
 
 #define OUTPUT_MAX  30000

@@ -113,7 +113,7 @@ typedef struct{
   float drive_cmd;
   float strafe_cmd; //These are external commands given from Auto-driving controllers
                     //Which can be manually overriden
-
+  float _init_yaw;
   ChassisEncoder_canStruct* _encoders;
 } chassisStruct;
 
