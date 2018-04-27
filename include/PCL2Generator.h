@@ -106,18 +106,19 @@ namespace laser_geometry
       LaserProjection() :
         angle_min_(0), angle_max_(0), pos_buffer_num(-1), sync(0.0), points_in_cloud(0), total_points(0){}
 
-      LaserProjection(ros::NodeHandle n, const int points, const double sync = 0.0) :
+      LaserProjection(ros::NodeHandle& n, const int points, const double sync = 0.0) :
         angle_min_(0), angle_max_(0), pos_buffer_num(-1), sync(sync), points_in_cloud(points), total_points(0)
       {
-          //scan_sub = n.subscribe("/scan", 1000, &LaserProjection::scan_callBack, this);
-          //pos_sub = n.subscribe("/lidar_pos",1000,&LaserProjection::pos_callBack, this);
+          std::string sub_scan_topic, sub_pos_topic, pub_topic;
 
-          scan_sub = n.subscribe("/scan", 1000, &LaserProjection::scan_callBack, this);
-          pos_sub = n.subscribe("/lidar_pos",1000,&LaserProjection::pos_callBack, this); //for simulation
+          n.param<std::string>("scan_topic", sub_scan_topic, "/scan");
+          n.param<std::string>("pos_topic",  sub_pos_topic,  "/lidar_pos");
+          n.param<std::string>("PCL_topic",  pub_topic,      "/cloud_in");
 
-          cloud_pub = n.advertise<sensor_msgs::PointCloud2>("/cloud_in", 1000);
+          scan_sub = n.subscribe(sub_scan_topic, 1000, &LaserProjection::scan_callBack, this);
+          pos_sub = n.subscribe(sub_pos_topic, 1000,&LaserProjection::pos_callBack, this);
+          cloud_pub = n.advertise<sensor_msgs::PointCloud2>(pub_topic, 1000);
       }
-
 
       //! Destructor to deallocate stored unit vectors
       ~LaserProjection();

@@ -406,6 +406,7 @@ namespace laser_geometry
       inited = true;
     }
 
+    //Throw points to circular buffer
     total_points += cloud_in.width;
     unsigned int start_point = total_points % points_in_cloud;
     if(cloud_in.width < points_in_cloud - start_point)
@@ -439,6 +440,7 @@ namespace laser_geometry
       else
         buffer_num--;
 
+      //Search for corresponding position and orientation data in sync with laser scan data
       if(pos_buffer[buffer_num].header.stamp < end && !end_found)
       {
           q2 = tf2::Quaternion(pos_buffer[buffer_num].pose.orientation.x, pos_buffer[buffer_num].pose.orientation.y,
