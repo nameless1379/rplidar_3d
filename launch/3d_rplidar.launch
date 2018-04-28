@@ -5,22 +5,30 @@
     <param name="frame_id"            type="string" value="laser"/>
     <param name="inverted"            type="bool"   value="false"/>
     <param name="angle_compensate"    type="bool"   value="true"/>
+    <param name="Corr_pos_topic"       type="string"   value="/corr_pos"/>
   </node>
 
   <node name= "stm32Node"          pkg="rplidar_3d"  type="stm32Node" output="screen">
     <param name="serial_port"         type="string" value="/dev/ttyUSB1"/>
     <param name="serial_baudrate"     type="int"    value="115200"/>
-    <param name="stepper_RPM"         type="int"    value="67"/>
+    <param name="stepper_RPM"         type="int"    value="75"/>
   </node>
 
   <node name="PCLGen"   pkg="rplidar_3d"  type="PCLGen" output="screen">
-    <param name="Points_in_Cloud"         type="int"      value="4000"/>
+    <param name="Frames_in_Cloud"         type="int"      value="3"/>
     <param name="Sync"                    type="double"   value="0.16"/>
     <param name="scan_topic"              type="string"   value="/scan"/>
     <param name="pos_topic"               type="string"   value="/lidar_pos"/>
-    <param name="PCL_topic"               type="string"   value="/cloud_in"/>
+    <param name="PCL_topic"               type="string"   value="/PCL"/>
   </node>
 
+  <node name="Icp"   pkg="rplidar_3d"  type="Icp" output="screen">
+    <param name="Init_count"           type="int"      value="40000"/>
+    <param name="PCL_in_topic"         type="string"   value="/PCL"/>
+    <param name="PCL_ref_topic"        type="string"   value="/octomap_point_cloud_centers"/>
+    <param name="Corr_pos_topic"       type="string"   value="/corr_pos"/>
+    <param name="PCL_out_topic"        type="string"   value="/cloud_in"/>
+  </node>
 
   <node pkg="octomap_server" type="octomap_server_node" name="octomap_server">
     <param name="resolution" value="0.05" />
@@ -33,6 +41,5 @@
 
       <!-- data source to integrate (PointCloud2) -->
     <remap from="/PCL" to="/narrow_stereo/points_filtered2" />
-
   </node>
 </launch>

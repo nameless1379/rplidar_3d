@@ -1,11 +1,7 @@
 #include "ch.h"
 #include "hal.h"
 
-#include "uart_host.h"
-#include "mpu6500.h"
-#include "stepper.h"
-#include "chassis.h"
-#include "attitude.h"
+#include "main.h"
 
 #define  NUM_SEGMENT 5U
 #define  RXBUF_START_SIZE  15U
@@ -67,6 +63,7 @@ static void rxend(UARTDriver *uartp) {
     else
     {
       float stepper_velcmd;
+      chSysLockFromISR();
       switch(rxbuf[2])
       {
         case 0x01:
@@ -78,11 +75,20 @@ static void rxend(UARTDriver *uartp) {
           break;
         case 0x02:
           break;
-
-        chSysLockFromISR();
-        chThdResumeI(&uart_receive_thread_handler, MSG_OK);
-        chSysUnlockFromISR();
+        case 0xAA:
+          if(rxbuf[3] == 0xA5)
+            system_resetCmd(ENABLE);
+          break;
+        case 0xFE:
+          if(rxbuf[3] == 0xAA)
+          {
+            attitude_resetYaw(pIMU, 0.0f);
+            chassis_wheelOdeometryReset();
+          }
+          break;
       }
+      chThdResumeI(&uart_receive_thread_handler, MSG_OK);
+      chSysUnlockFromISR();
     }
   }
 }
@@ -160,8 +166,7 @@ static THD_FUNCTION(uart_host_thread, p)
   for (i = 0; i < NUM_SEGMENT; i++)
     uart_host_send(segments[i], size_of_segments[i]);
 
-  attitude_resetYaw(pIMU, 0.0f);
-  chassis_wheelOdeometryReset();
+  stepper_init(STEPPER_CCW);
 
   chThdCreateStatic(uart_receive_thread_wa, sizeof(uart_receive_thread_wa),
                     NORMALPRIO + 7,

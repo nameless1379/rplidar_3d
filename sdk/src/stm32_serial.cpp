@@ -16,6 +16,16 @@ stm32_serial::stm32_serial(): _isConnected(false),_rxStarted(false),_cached_pack
   _rxtx = rp::hal::serial_rxtx::CreateRxTx();
 }
 
+stm32_serial::~stm32_serial()
+{
+  // force disconnection
+  transmit_MCUreset_cmd();
+  delay(100);
+  disconnect();
+
+  rp::hal::serial_rxtx::ReleaseRxTx(_rxtx);
+}
+
 u_result stm32_serial::connect(const char * port_path, _u32 baudrate)
 {
     if (isConnected()) return RESULT_ALREADY_DONE;
@@ -61,7 +71,7 @@ u_result stm32_serial::_transmit(_u8* txbuf, _u16 size)
     return RESULT_OK;
 }
 
-u_result stm32_serial::transmit_handshake()
+u_result stm32_serial::transmit_handshake(void)
 {
     _u8 txbuf[3] = {0xa5,0x5a,TX_HANDSHAKE_HEADER};
     _u8 res[TX_BUFFER_SIZE - 7];
@@ -85,7 +95,6 @@ u_result stm32_serial::transmit_handshake()
     return RESULT_OK;
 }
 
-
 u_result stm32_serial::transmit_stepper_cmd(const float vel_cmd)
 {
     _u8 txbuf[3] = {0xa5,0x5a,TX_STEPPER_HEADER};
@@ -94,6 +103,33 @@ u_result stm32_serial::transmit_stepper_cmd(const float vel_cmd)
     _transmit(txbuf, 3);
     _transmit((_u8*)&vel_cmd, 4);
     _transmit(res, TX_BUFFER_SIZE - 7);
+
+    return RESULT_OK;
+}
+
+u_result stm32_serial::transmit_reset_cmd(void)
+{
+  _u8 txbuf[3] = {0xa5,0x5a,TX_RESET_HEADER};
+  _u8 res[TX_BUFFER_SIZE - 3];
+
+  memset(res, 0xAA, TX_BUFFER_SIZE - 3);
+
+  _transmit(txbuf, 3);
+  _transmit(res, TX_BUFFER_SIZE - 3);
+
+  return RESULT_OK;
+}
+
+u_result stm32_serial::transmit_MCUreset_cmd(void)
+{
+    printf("Resetting STM32 MCU...\r\n");
+    _u8  txbuf[3] = {0xa5,0x5a,TX_MCU_RESET_HEADER};
+    _u8  res[TX_BUFFER_SIZE - 3];
+
+    memset(res, 0xA5, TX_BUFFER_SIZE - 3);
+
+    _transmit(txbuf, 3);
+    _transmit(res, TX_BUFFER_SIZE - 3);
 
     return RESULT_OK;
 }

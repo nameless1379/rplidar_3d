@@ -44,6 +44,7 @@
 #define DEG2RAD(x) ((x)*M_PI/180.)
 
 static stm32_serial* serial;
+static bool icp_inited = false;
 
 /**
   * TODO: Modify stm32 to transmit quaternion
@@ -62,15 +63,23 @@ void stm32_serial::publish_pos_msg(ros::Publisher *pub, stm32_serial_packet_t *n
 
     q2.setEulerZYX(-node->stepper_angle,DEG2RAD(22.5),0);
 
-    if (node->imu_data[0] != 100.0f)
+    if (node->imu_data[0] != 100.0f && icp_inited)
       q1 = tf2::Quaternion(node->imu_data[1], node->imu_data[2], node->imu_data[3], node->imu_data[0]);
     else
       q1  = tf2::Quaternion::getIdentity();
 
     q1 *= q2;
 
-    pos_msg.pose.position.x = node->wheel_odeometry[1];
-    pos_msg.pose.position.y = node->wheel_odeometry[0];
+    if(icp_inited)
+    {
+      pos_msg.pose.position.x = node->wheel_odeometry[1];
+      pos_msg.pose.position.y = node->wheel_odeometry[0];
+    }
+    else
+    {
+      pos_msg.pose.position.x = 0.0;
+      pos_msg.pose.position.y = 0.0;
+    }
     pos_msg.pose.position.z = 0.0;
 
     pos_msg.pose.orientation.x = (double)(q1.x());
@@ -90,7 +99,17 @@ bool stepper_set_speed(rplidar_3d::stm32_cmd::Request  &req,
   return IS_FAIL(serial->transmit_stepper_cmd(req.speed));
 }
 
-#define CONNECTION_ERROR_MAX 20U
+void pos_corr_callback(geometry_msgs::PoseStamped::ConstPtr pos)
+{
+  if(pos->pose.orientation.x == 100.0f && pos->pose.orientation.y == 100.0f)
+  {
+    printf("Initialization complete\r\n");
+    icp_inited = true;
+    serial->transmit_reset_cmd();
+  }
+}
+
+#define CONNECTION_ERROR_MAX 5U
 int main(int argc, char * argv[])
 {
     ros::init(argc, argv, "stm32_serial_node");
@@ -101,7 +120,11 @@ int main(int argc, char * argv[])
 
     ros::NodeHandle nh;
     ros::NodeHandle nh_private("~");
-    ros::Publisher pos_pub = nh.advertise<geometry_msgs::PoseStamped>("/lidar_pos", 1000);
+    ros::Publisher  pos_pub = nh.advertise<geometry_msgs::PoseStamped>("/lidar_pos", 200);
+
+    std::string sub_pos_topic;
+    nh.param<std::string>("Corr_pos_topic", sub_pos_topic, "/corr_pos");
+    ros::Subscriber pos_corr_sub = nh.subscribe(sub_pos_topic, 200, &pos_corr_callback);
 
     nh_private.param<std::string>("serial_port", serial_port, "/dev/ttyUSB0");
     nh_private.param<int>("serial_baudrate", serial_baudrate, 115200);
@@ -141,6 +164,7 @@ int main(int argc, char * argv[])
 
     ros::ServiceServer set_speed_srv = nh.advertiseService("stepper_set_speed", stepper_set_speed);
 
+    ros::Duration(0.5).sleep();
     serial->transmit_stepper_cmd(stepper_speed);
     serial->start_rx(DEFAULT_TIMEOUT);
     printf("Started receiving data...\n");
@@ -163,8 +187,6 @@ int main(int argc, char * argv[])
             return -1;
           }
         }
-        else if(error_counter > 5)
-          error_counter -= 5;
         else
           error_counter = 0;
 /*

@@ -22,6 +22,7 @@
 #include "stepper.h"
 #include "chassis.h"
 
+void system_resetCmd(const uint8_t cmd);
 void shellStart(void);
 
 #endif

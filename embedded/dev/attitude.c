@@ -127,8 +127,6 @@ uint8_t attitude_imu_init(PIMUStruct pIMU)
 
 void attitude_resetYaw(PIMUStruct pIMU, const float yaw)
 {
-  chSysLock();
   pIMU->euler_angle[Yaw] = yaw;
   euler2quarternion(pIMU->euler_angle, pIMU->qIMU);
-  chSysUnlock();
 }

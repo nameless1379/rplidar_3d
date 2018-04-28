@@ -15,9 +15,11 @@
 #define MAX_SYNC_ERROR  20
 #define TX_BUFFER_SIZE  15
 
-#define TX_HANDSHAKE_HEADER 0x00
-#define TX_STEPPER_HEADER   0x01
-#define TX_POS_HEADER       0x02
+#define TX_HANDSHAKE_HEADER  0x00
+#define TX_STEPPER_HEADER    0x01
+#define TX_POS_HEADER        0x02
+#define TX_MCU_RESET_HEADER  0xAA
+#define TX_RESET_HEADER      0xFE
 
 typedef struct {
   _u16 sync;
@@ -30,13 +32,16 @@ typedef struct {
 class stm32_serial {
 public:
   stm32_serial();
+  ~stm32_serial();
 
   u_result connect(const char * port_path, _u32 baudrate);
   void disconnect();
   bool isConnected();
 
-  u_result transmit_handshake();
+  u_result transmit_handshake(void);
   u_result transmit_stepper_cmd(const float vel_cmd);
+  u_result transmit_reset_cmd(void);
+  u_result transmit_MCUreset_cmd(void);
 
   u_result start_rx(_u32 timeout);
   u_result grabPacket(stm32_serial_packet_t * nodebuffer, size_t & count, _u32 timeout);

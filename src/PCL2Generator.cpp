@@ -390,34 +390,46 @@ namespace laser_geometry
   void LaserProjection::append_cloud(const sensor_msgs::PointCloud2& cloud_in)
   {
     cloud.header = cloud_in.header;
-    static bool inited = false;
+    cloud.height = cloud_in.height;
+    cloud.fields = cloud_in.fields;
+    cloud.is_bigendian = cloud_in.is_bigendian;
+    cloud.point_step = cloud_in.point_step;
+    cloud.is_dense = cloud_in.is_dense;
 
-    if(!inited)
+    unsigned int prev_points_in_cloud = points_in_cloud;
+    points_in_cloud += cloud_in.width;
+    if(points_in_cloud > cloud.width)
     {
-      cloud.height = cloud_in.height;
       cloud.width = points_in_cloud;
-      cloud.fields = cloud_in.fields;
-      cloud.is_bigendian = cloud_in.is_bigendian;
-      cloud.point_step = cloud_in.point_step;
       cloud.row_step = points_in_cloud * cloud.point_step;
-      cloud.is_dense = cloud_in.is_dense;
       cloud.data.resize(cloud.row_step * cloud.height);
-
-      inited = true;
     }
+    total_frames++;
 
-    //Throw points to circular buffer
-    total_points += cloud_in.width;
-    unsigned int start_point = total_points % points_in_cloud;
-    if(cloud_in.width < points_in_cloud - start_point)
-      memcpy(&cloud.data[start_point*cloud_in.point_step], &cloud_in.data[0], cloud_in.width * cloud_in.point_step);
-    else
-    {
-      unsigned int point_temp = points_in_cloud - start_point - 1;
-      if(point_temp)
-        memcpy(&cloud.data[start_point*cloud_in.point_step], &cloud_in.data[0], point_temp * cloud_in.point_step);
-      memcpy(&cloud.data[0], &cloud_in.data[point_temp*cloud_in.point_step], (cloud_in.width - point_temp) * cloud_in.point_step);
-    }
+    //Throw points to buffer
+    memcpy(&cloud.data[prev_points_in_cloud * cloud_in.point_step],
+      &cloud_in.data[0], cloud_in.width * cloud_in.point_step);
+  }
+
+  void LaserProjection::publish_cloud(sensor_msgs::PointCloud2& cloud)
+  {
+    sensor_msgs::PointCloud2 cloud_out;
+
+    cloud_out.header = cloud.header;
+    cloud_out.height = cloud.height;
+    cloud_out.fields = cloud.fields;
+    cloud_out.is_bigendian = cloud.is_bigendian;
+    cloud_out.point_step = cloud.point_step;
+    cloud_out.is_dense = cloud.is_dense;
+
+    cloud_out.width = points_in_cloud;
+    cloud_out.row_step = points_in_cloud * cloud.point_step;
+    cloud_out.data.resize(cloud_out.row_step * cloud.height);
+
+    memcpy(&cloud_out.data[0], &cloud.data[0], cloud_out.row_step);
+
+    points_in_cloud = 0;
+    cloud_pub.publish(cloud_out);
   }
 
   void LaserProjection::scan_callBack_(const sensor_msgs::LaserScan::ConstPtr& scan)
@@ -461,7 +473,9 @@ namespace laser_geometry
                        pos_buffer[buffer_num].pose.position.z);
     transformLaserScanToPointCloud ("PCL2_frame", *scan, new_cloud, q2, p2, q1, p1);
     append_cloud(new_cloud);
-    cloud_pub.publish(cloud);
+
+    if(!(total_frames % frames_in_cloud))
+      publish_cloud(cloud);
   }
 } //laser_geometry
 
@@ -472,13 +486,13 @@ int main(int argc, char * argv[])
     ros::NodeHandle nh;
     ros::NodeHandle nh_private("~");
 
-    int points = 0;
+    int frames = 0;
     double sync = 0.135;
 
-    nh_private.param<int>("Points_in_Cloud", points, 0);
+    nh_private.param<int>("Frames_in_Cloud", frames, 0);
     nh_private.param<double>("Sync", sync, 0.135);
 
-    laser_geometry::LaserProjection Laser(nh, points, sync);
+    laser_geometry::LaserProjection Laser(nh, frames, sync);
 
     ros::spin();
 

@@ -36,6 +36,23 @@ include_directories(
 )
 link_directories(${Eigen3_LIBRARY_DIRS})
 
+find_package( PCL REQUIRED )
+
+if( PCL_FOUND )
+  # [C/C++]>[General]>[Additional Include Directories]
+  include_directories( ${PCL_INCLUDE_DIRS} )
+
+  # [C/C++]>[Preprocessor]>[Preprocessor Definitions]
+  add_definitions( ${PCL_DEFINITIONS} )
+
+  # For Use Not PreCompiled Features
+  #add_definitions( -DPCL_NO_PRECOMPILE )
+
+  # [Linker]>[General]>[Additional Library Directories]
+  link_directories( ${PCL_LIBRARY_DIRS} )
+endif()
+
+
 add_service_files(
   FILES
   stm32_cmd.srv
@@ -63,6 +80,9 @@ target_link_libraries(LaserScanGen ${catkin_LIBRARIES})
 
 add_executable(PCLGen src/PCL2Generator.cpp)
 target_link_libraries(PCLGen ${Boost_LIBRARIES} ${Eigen_LIBRARIES} ${tf_LIBRARIES})
+
+add_executable(Icp src/icp_node.cpp)
+target_link_libraries(Icp ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${Eigen_LIBRARIES})
 
 add_executable(stm32Node src/stm32_node.cpp ${RPLIDAR_SDK_SRC})
 target_link_libraries(stm32Node ${catkin_LIBRARIES} ${tf_LIBRARIES})

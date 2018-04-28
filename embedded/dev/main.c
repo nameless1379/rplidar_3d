@@ -15,6 +15,9 @@
 */
 #include "main.h"
 
+static bool resetCmd = DISABLE;
+PIMUStruct pIMU;
+
 #define MPU6500_UPDATE_PERIOD_US 1000000U/MPU6500_UPDATE_FREQ
 static THD_WORKING_AREA(Attitude_thread_wa, 4096);
 static THD_FUNCTION(Attitude_thread, p)
@@ -23,7 +26,7 @@ static THD_FUNCTION(Attitude_thread, p)
 
   (void)p;
 
-  PIMUStruct pIMU = imu_get();
+  pIMU = imu_get();
 
   static const IMUConfigStruct imu1_conf =
     {&SPID5, MPU6500_ACCEL_SCALE_8G, MPU6500_GYRO_SCALE_1000, MPU6500_AXIS_REV_X};
@@ -44,8 +47,6 @@ static THD_FUNCTION(Attitude_thread, p)
 
   uint32_t tick = chVTGetSystemTimeX();
 
-  LEDY_ON();
-
   while(true)
   {
     tick += US2ST(MPU6500_UPDATE_PERIOD_US);
@@ -57,12 +58,7 @@ static THD_FUNCTION(Attitude_thread, p)
       pIMU->errorCode |= IMU_LOSE_FRAME;
     }
 
-    if(pIMU->state == IMU_STATE_HEATING && pIMU->temperature > 61.0f)
-    {
-      LEDY_OFF();
-      pIMU->state = IMU_STATE_READY;
-    }
-    else if(pIMU->temperature < 55.0f || pIMU->temperature > 70.0f)
+    if(pIMU->temperature < 55.0f || pIMU->temperature > 70.0f)
       pIMU->errorCode |= IMU_TEMP_WARNING;
 
     imuGetData(pIMU);
@@ -76,6 +72,11 @@ static THD_FUNCTION(Attitude_thread, p)
       chSysUnlock();
     }
   }
+}
+
+void system_resetCmd(const uint8_t cmd)
+{
+  resetCmd = cmd;
 }
 
 #define attitude_init() (chThdCreateStatic(Attitude_thread_wa, sizeof(Attitude_thread_wa), \
@@ -98,6 +99,8 @@ int main(void) {
   halInit();
   chSysInit();
 
+  LEDY_ON(); //Indicates Error or initialization not complete
+
   shellStart();
   params_init();
   attitude_init();
@@ -106,36 +109,41 @@ int main(void) {
   RC_init();
 
   chassis_init();
-  chassis_setSpeedLimit(0.2f);
+  chassis_setSpeedLimit(0.14f);
   chassis_setAcclLimit(1.0f);
-
-  while(palReadPad(GPIOF, GPIOF_SKEY))
-    chThdSleepMilliseconds(200);
-
-  stepper_init(STEPPER_CCW);
-  stepper_setvelocity(2*M_PI);
 
   uart_host_init();
 
   while (true)
   {
     chThdSleepMilliseconds(200);
+    if(pIMU->state == IMU_STATE_HEATING && pIMU->temperature > 61.0f)
+    {
+      LEDY_OFF(); //Completion of initialization sequence
+      pIMU->state = IMU_STATE_READY;
+    }
+
+    if(resetCmd)
+      goto SYSTEM_RESET;
+
     if(!palReadPad(GPIOF, GPIOF_SKEY))
+    {
+      chThdSleepMilliseconds(100);
+      if(!palReadPad(GPIOF, GPIOF_SKEY))
       {
-        chThdSleepMilliseconds(100);
-        if(!palReadPad(GPIOF, GPIOF_SKEY))
+        SYSTEM_RESET:
+
+        LEDY_ON();
         {
-          LEDY_ON();
-          {
-            __DSB();                              /* Ensure all outstanding memory accesses included
+          __DSB();                              /* Ensure all outstanding memory accesses included
                                                        buffered write are completed before reset */
-            SCB->AIRCR  = ((0x5FA << SCB_AIRCR_VECTKEY_Pos)      |
+          SCB->AIRCR  = ((0x5FA << SCB_AIRCR_VECTKEY_Pos)      |
                              (SCB->AIRCR & SCB_AIRCR_PRIGROUP_Msk) |
                               SCB_AIRCR_SYSRESETREQ_Msk);      /* Keep priority group unchanged */
-            __DSB();                               /* Ensure completion of memory access */
-            while(1);
-          }
+          __DSB();                               /* Ensure completion of memory access */
+          while(1);
         }
+      }
     }
   }
 
