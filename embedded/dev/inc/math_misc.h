@@ -182,6 +182,20 @@ static inline void matrix33_multiply_vector3(const float A[3][3], const float x[
   }
 }
 
+/**
+ * multiplication
+ */
+static inline void quaternion_multiply(float q_out[4], const float q_in[4])
+{
+  float q_temp[4];
+  memcpy(q_temp, q_out, 16);
+
+  q_out[0] = q_in[0] * q_temp[0] - q_in[1] * q_temp[1] - q_in[2] * q_temp[2] - q_in[3] * q_temp[3],
+  q_out[1] = q_in[0] * q_temp[1] + q_in[1] * q_temp[0] + q_in[2] * q_temp[3] - q_in[3] * q_temp[2],
+  q_out[2] = q_in[0] * q_temp[2] - q_in[1] * q_temp[3] + q_in[2] * q_temp[0] + q_in[3] * q_temp[1],
+  q_out[3] = q_in[0] * q_temp[3] + q_in[1] * q_temp[2] - q_in[2] * q_temp[1] + q_in[3] * q_temp[0];
+}
+
 static inline void rotm2quarternion(const float rotm[3][3], float q[4])
 {
   float tr = rotm[0][0] + rotm[1][1] + rotm[2][2];

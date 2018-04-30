@@ -62,18 +62,21 @@ static void rxend(UARTDriver *uartp) {
     }
     else
     {
-      float stepper_velcmd;
+      float cmd1, cmd2;
       chSysLockFromISR();
       switch(rxbuf[2])
       {
         case 0x01:
-          stepper_velcmd = *((float*)(rxbuf + 3));
-          if(stepper_velcmd == 0.0f)
+          cmd1 = *((float*)(rxbuf + 3));
+          if(cmd1 == 0.0f)
             stepper_stop();
           else
-            stepper_setvelocity(stepper_velcmd);
+            stepper_setvelocity(cmd1);
           break;
         case 0x02:
+          cmd1 = *((float*)(rxbuf + 3));
+          cmd2 = *((float*)(rxbuf + 7));
+          attitude_updateGyroZ(pIMU, cmd1, cmd2);
           break;
         case 0xAA:
           if(rxbuf[3] == 0xA5)

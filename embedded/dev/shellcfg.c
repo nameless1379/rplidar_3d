@@ -88,6 +88,10 @@ void cmd_test(BaseSequentialStream * chp, int argc, char *argv[])
   chprintf(chp,"accelFiltered[Y]: %f\r\n",PIMU->accelFiltered[Y]);
   chprintf(chp,"accelFiltered[Z]: %f\r\n",PIMU->accelFiltered[Z]);
 
+  chprintf(chp,"gyroBias[X]: %f\r\n",PIMU->_gyroBias[X]);
+  chprintf(chp,"gyroBias[Y]: %f\r\n",PIMU->_gyroBias[Y]);
+  chprintf(chp,"gyroBias[Z]: %f\r\n",PIMU->_gyroBias[Z]);
+
   chprintf(chp,"Roll:  %f\r\n",PIMU->euler_angle[Roll]);
   chprintf(chp,"Pitch: %f\r\n",PIMU->euler_angle[Pitch]);
   chprintf(chp,"Yaw:   %f\r\n",PIMU->euler_angle[Yaw]);

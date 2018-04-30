@@ -17,7 +17,7 @@
 
 #define TX_HANDSHAKE_HEADER  0x00
 #define TX_STEPPER_HEADER    0x01
-#define TX_POS_HEADER        0x02
+#define TX_GYRO_BIAS_HEADER  0x02
 #define TX_MCU_RESET_HEADER  0xAA
 #define TX_RESET_HEADER      0xFE
 
@@ -40,6 +40,7 @@ public:
 
   u_result transmit_handshake(void);
   u_result transmit_stepper_cmd(const float vel_cmd);
+  u_result transmit_gyro_bias(const float gyro_bias_z);
   u_result transmit_reset_cmd(void);
   u_result transmit_MCUreset_cmd(void);
 

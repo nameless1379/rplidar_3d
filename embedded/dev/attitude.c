@@ -124,6 +124,16 @@ uint8_t attitude_imu_init(PIMUStruct pIMU)
   return IMU_OK;
 }
 
+void attitude_updateGyroZ(PIMUStruct pIMU, const float gyro_corr_z, const float gyro_Bias_z)
+{
+  _error_int[Z] += gyro_Bias_z;
+  float q[4];
+  float rotation[3] = {0.0f, 0.0f, gyro_corr_z};
+  euler2quarternion(rotation, q);
+
+  //pIMU->qIMU *= q
+  quaternion_multiply(pIMU->qIMU, q);
+}
 
 void attitude_resetYaw(PIMUStruct pIMU, const float yaw)
 {

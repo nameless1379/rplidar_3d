@@ -107,6 +107,18 @@ u_result stm32_serial::transmit_stepper_cmd(const float vel_cmd)
     return RESULT_OK;
 }
 
+u_result stm32_serial::transmit_gyro_bias(const float gyro_bias_z)
+{
+    _u8 txbuf[3] = {0xa5,0x5a,TX_GYRO_BIAS_HEADER};
+    _u8 res[TX_BUFFER_SIZE - 7];
+
+    _transmit(txbuf, 3);
+    _transmit((_u8*)&gyro_bias_z, 4);
+    _transmit(res, TX_BUFFER_SIZE - 7);
+
+    return RESULT_OK;
+}
+
 u_result stm32_serial::transmit_reset_cmd(void)
 {
   _u8 txbuf[3] = {0xa5,0x5a,TX_RESET_HEADER};

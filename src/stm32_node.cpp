@@ -68,6 +68,11 @@ void stm32_serial::publish_pos_msg(ros::Publisher *pub, stm32_serial_packet_t *n
     else
       q1  = tf2::Quaternion::getIdentity();
 
+    double  gyro_yaw = atan2(2.0f * (q1.w() * q1.z() + q1.x() * q1.y()),
+                    1.0f - 2.0f * (q1.y() * q1.y() + q1.z() * q1.z()));
+
+    std::cout << "gyro_yaw: "<< gyro_yaw * 180 / M_PI <<std::endl;
+
     q1 *= q2;
 
     if(icp_inited)
@@ -106,6 +111,34 @@ void pos_corr_callback(geometry_msgs::PoseStamped::ConstPtr pos)
     printf("Initialization complete\r\n");
     icp_inited = true;
     serial->transmit_reset_cmd();
+  }
+  else
+  {
+    static double prev_gyro_error = 0;
+    static ros::Time prev;
+
+    double  gyro_error = atan2(2.0f * (pos->pose.orientation.w * pos->pose.orientation.z +
+                                       pos->pose.orientation.x * pos->pose.orientation.y),
+                              1.0f - 2.0f * (pos->pose.orientation.y * pos->pose.orientation.y +
+                                             pos->pose.orientation.z * pos->pose.orientation.z));
+
+    const float tracking_kp = 0.035;
+    const float tracking_ki = 0.0;
+
+    float gyro_bias_z;
+    if(prev.is_zero())
+      gyro_bias_z = 0;
+    else
+    {
+      double dt = (ros::Time::now() - prev).toSec();
+      gyro_bias_z = (gyro_error - prev_gyro_error)/dt * tracking_kp +
+                     gyro_error * tracking_ki;
+    }
+
+    prev = ros::Time::now();
+    prev_gyro_error = gyro_error;
+
+    serial->transmit_gyro_bias(gyro_bias_z);
   }
 }
 
@@ -164,7 +197,7 @@ int main(int argc, char * argv[])
 
     ros::ServiceServer set_speed_srv = nh.advertiseService("stepper_set_speed", stepper_set_speed);
 
-    ros::Duration(0.5).sleep();
+    ros::Duration(0.7).sleep();
     serial->transmit_stepper_cmd(stepper_speed);
     serial->start_rx(DEFAULT_TIMEOUT);
     printf("Started receiving data...\n");

@@ -15,6 +15,7 @@ find_package(catkin REQUIRED COMPONENTS
   rosconsole
   sensor_msgs
   geometry_msgs
+  pcl_conversions
   message_generation
   angles
   cmake_modules
@@ -82,7 +83,7 @@ add_executable(PCLGen src/PCL2Generator.cpp)
 target_link_libraries(PCLGen ${Boost_LIBRARIES} ${Eigen_LIBRARIES} ${tf_LIBRARIES})
 
 add_executable(Icp src/icp_node.cpp)
-target_link_libraries(Icp ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${Eigen_LIBRARIES})
+target_link_libraries(Icp ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${Eigen_LIBRARIES} ${tf_LIBRARIES})
 
 add_executable(stm32Node src/stm32_node.cpp ${RPLIDAR_SDK_SRC})
 target_link_libraries(stm32Node ${catkin_LIBRARIES} ${tf_LIBRARIES})
