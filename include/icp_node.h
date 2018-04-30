@@ -31,6 +31,8 @@ class ICP_Align{
       ref_sub = n.subscribe(sub_ref_topic, 20000, &ICP_Align::ref_callback, this);
       pos_pub = n.advertise<geometry_msgs::PoseStamped>(pub_pos_topic, 200);
       cloud_pub = n.advertise<pcl::PointCloud<pcl::PointXYZ> >(pub_cloud_topic, 20000);
+
+      pos_error.setValue(0.0, 0.0, 0.0);
     }
 
     ~ICP_Align(){}
@@ -52,6 +54,7 @@ class ICP_Align{
 
     geometry_msgs::PoseStamped pos;
     pcl::PointCloud<pcl::PointXYZ> cloud_raw, cloud_ref;
+    tf2::Vector3 pos_error; //Store the total pos error corrected by LIDAR icp
 
     void publish_pos_msg(
       double tX, double tY, double tZ, double qX, double qY, double qZ, double qW

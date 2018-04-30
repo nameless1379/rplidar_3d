@@ -31,6 +31,18 @@ void ICP_Align::cloud_callback(const sensor_msgs::PointCloud2::ConstPtr& cloud_i
   pcl::PointCloud<pcl::PointXYZ>::ConstPtr p_cloud_raw(cloud_raw.makeShared());
   pcl::PointCloud<pcl::PointXYZ>::ConstPtr p_cloud_ref(cloud_ref.makeShared());
 
+  //Pre-transform, cancel the wheel sliding estimated by ICP
+  for(size_t i = 0; i < cloud_in->width; ++i)
+  {
+    // Apply the transform to the current point
+    float *pstep = (float*)&(cloud_in->data[i * cloud_in->point_step + 0]);
+
+    // Copy transformed point into cloud
+    pstep[0] += pos_error.x ();
+    pstep[1] += pos_error.y ();
+    pstep[2] += pos_error.z ();
+  }
+
   pcl::fromROSMsg (*cloud_in , cloud_raw);
 
   if(points_count > init_count)
@@ -48,12 +60,12 @@ void ICP_Align::cloud_callback(const sensor_msgs::PointCloud2::ConstPtr& cloud_i
     // Note: adjust this based on the size of your datasets
     pcl::PointCloud<pcl::PointXYZ> cloud_aligned; //Required for align() function, we may just discard this
 
-    reg.setTransformationEpsilon (1e-5);
+    reg.setTransformationEpsilon (1e-4);
     reg.setInputSource (p_cloud_ref);
     reg.setInputTarget (p_cloud_raw);
-    reg.setMaxCorrespondenceDistance (1.0);
+    reg.setMaxCorrespondenceDistance (0.5);
     //reg.setEuclideanFitnessEpsilon (0.1);
-    reg.setRANSACOutlierRejectionThreshold (0.01);
+    reg.setRANSACOutlierRejectionThreshold (0.005);
 
     reg.setMaximumIterations (10);
     reg.align (cloud_aligned);
@@ -84,14 +96,16 @@ void ICP_Align::cloud_callback(const sensor_msgs::PointCloud2::ConstPtr& cloud_i
       tf2::Quaternion tfqt;
       tf3d.getRotation(tfqt);
 
-      tf2::Vector3 origin;
-      origin.setValue(dX, dY, dZ);
+      tf2::Vector3 new_error;
+      new_error.setValue(dX, dY, dZ);
+
+      pos_error += new_error * 0.25;
 
       tf2::Transform transform;
-      transform.setOrigin(origin);
+      transform.setOrigin(new_error);
       transform.setRotation(tfqt);
 
-      //std::cout<<"TF_origin:"<<dX<<","<<dY<<","<<dZ<<","<<-dYaw*180/M_PI<<std::endl;
+      std::cout<<"TF_origin:"<<dX<<","<<dY<<","<<dZ<<","<<-dYaw*180/M_PI<<std::endl;
       //we want to loop through all the points in the cloud
       for(size_t i = 0; i < cloud_in->width; ++i)
       {
@@ -107,9 +121,9 @@ void ICP_Align::cloud_callback(const sensor_msgs::PointCloud2::ConstPtr& cloud_i
         pstep[2] = point_out.z ();
       }
 
-      publish_pos_msg(static_cast<double>(origin.getX()),
-                      static_cast<double>(origin.getY()),
-                      static_cast<double>(origin.getZ()),
+      publish_pos_msg(static_cast<double>(pos_error.getX()),
+                      static_cast<double>(pos_error.getY()),
+                      static_cast<double>(pos_error.getZ()),
                       static_cast<double>(tfqt.getX()),
                       static_cast<double>(tfqt.getY()),
                       static_cast<double>(tfqt.getZ()),

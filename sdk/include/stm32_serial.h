@@ -40,7 +40,8 @@ public:
 
   u_result transmit_handshake(void);
   u_result transmit_stepper_cmd(const float vel_cmd);
-  u_result transmit_gyro_bias(const float gyro_bias_z);
+  u_result transmit_gyro_bias(const float gyro_corr_z,
+    const float gyro_bias_z);
   u_result transmit_reset_cmd(void);
   u_result transmit_MCUreset_cmd(void);
 

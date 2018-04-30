@@ -471,47 +471,13 @@ namespace laser_geometry
                        pos_buffer[buffer_num].pose.position.y,
                        pos_buffer[buffer_num].pose.position.z);
 
-    p1 += origin_corr;
-    p2 += origin_corr;
-
     transformLaserScanToPointCloud ("PCL2_frame", *scan, new_cloud, q2, p2, q1, p1);
     append_cloud(new_cloud);
 
     if(!(total_frames % frames_in_cloud))
       publish_cloud(cloud);
   }
-
-  //Use PI controller to track the changing "sliding effect" estimated by LIDAR ICP
-  void LaserProjection::pos_corr_callBack(const geometry_msgs::PoseStamped::ConstPtr& pos)
-  {
-    static ros::Time prev(0, 0);
-    double dt;
-
-    if(!(prev.is_zero()))
-      dt = (ros::Time::now() - prev).toSec();
-    else
-      dt = 0.0;
-
-    prev = ros::Time::now();
-
-    //want to reduce this to zero ==> position is corrected
-    tf2::Vector3 error(pos->pose.position.x,
-                       pos->pose.position.y,
-                       pos->pose.position.z);
-
-    error_int += error * tracking_ki * dt;
-
-    //Set maximum for integrator to be 0.4m
-    double scale = error_int.length() > 0.4 ?
-      0.4 / error_int.length() : 1.0;
-
-    origin_corr += (error * tracking_kp + error_int * scale);
-    //std::cout<<"Origin corr:"<<origin_corr.getX()<<','
-    //                         <<origin_corr.getY()<<','
-    //                         <<origin_corr.getZ()<<std::endl;
-  }
-
-} //laser_geometry
+}
 
 int main(int argc, char * argv[])
 {

@@ -149,7 +149,6 @@ static THD_FUNCTION(uart_host_thread, p)
   segments[3] = (uint8_t*)chassis_wheelOdeometryGet(); //chassis odeometry data
   segments[NUM_SEGMENT - 1] = (uint8_t*)&timestamp;
 
-  uint32_t tick = chVTGetSystemTimeX();
   uint8_t i;
 
   while(!start_flag)
@@ -175,8 +174,18 @@ static THD_FUNCTION(uart_host_thread, p)
                     NORMALPRIO + 7,
                     uart_receive_thread, NULL);
 
+  /* Run a gyro calibration*/
+  LEDY_ON();
+  pIMU->gyroscope_not_calibrated = true;
+  pIMU->state = IMU_STATE_CALIBRATING;
+  calibrate_gyroscope(pIMU);
+  chThdResume(&(pIMU->imu_Thd), MSG_OK);
+  pIMU->state = IMU_STATE_READY;
+  LEDY_OFF();
+
   chThdSleepMilliseconds(100);
 
+  uint32_t tick = chVTGetSystemTimeX();
   while(!chThdShouldTerminateX())
   {
     tick += US2ST(HOST_TRANSMIT_PERIOD);

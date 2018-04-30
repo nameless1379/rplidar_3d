@@ -106,7 +106,7 @@ namespace laser_geometry
 
       LaserProjection() :
         angle_min_(0), angle_max_(0), pos_buffer_num(-1), sync(0.0), points_in_cloud(0),
-        frames_in_cloud(0), total_frames(0), tracking_kp(0.0), tracking_ki(0.0){}
+        frames_in_cloud(0), total_frames(0){}
 
       LaserProjection(ros::NodeHandle& n, const int frames, const double sync = 0.0) :
         angle_min_(0), angle_max_(0), pos_buffer_num(-1), sync(sync), points_in_cloud(0),
@@ -114,8 +114,6 @@ namespace laser_geometry
       {
           std::string sub_scan_topic, sub_pos_topic, sub_pos_corr_topic, pub_topic;
 
-          n.param<double>("Tracking_kp",  tracking_kp, 0.09);
-          n.param<double>("Tracking_ki",  tracking_ki, 0.0);
           n.param<std::string>("scan_topic",      sub_scan_topic,     "/scan");
           n.param<std::string>("pos_topic",       sub_pos_topic,      "/lidar_pos");
           n.param<std::string>("Corr_pos_topic",  sub_pos_corr_topic, "/corr_pos");
@@ -123,10 +121,7 @@ namespace laser_geometry
 
           scan_sub = n.subscribe(sub_scan_topic, 200, &LaserProjection::scan_callBack, this);
           pos_sub = n.subscribe(sub_pos_topic, 200,&LaserProjection::pos_callBack, this);
-          pos_corr_sub = n.subscribe(sub_pos_corr_topic, 200,&LaserProjection::pos_corr_callBack, this);
           cloud_pub = n.advertise<sensor_msgs::PointCloud2>(pub_topic, 200);
-
-          origin_corr = tf2::Vector3(0.0, 0.0, 0.0);
       }
 
       //! Destructor to deallocate stored unit vectors
@@ -162,8 +157,6 @@ namespace laser_geometry
         pos_buffer[pos_buffer_num] = *pos;
       }
 
-      void pos_corr_callBack(const geometry_msgs::PoseStamped::ConstPtr& pos);
-
       void projectLaser (const sensor_msgs::LaserScan& scan_in,
                          sensor_msgs::PointCloud2 &cloud_out,
                          double range_cutoff = -1.0,
@@ -198,7 +191,6 @@ namespace laser_geometry
       void publish_cloud(sensor_msgs::PointCloud2& cloud);
       ros::Subscriber scan_sub;
       ros::Subscriber pos_sub;
-      ros::Subscriber pos_corr_sub;
       ros::Publisher cloud_pub;
     private:
 
@@ -218,11 +210,6 @@ namespace laser_geometry
       float angle_max_;
       Eigen::ArrayXXd co_sine_map_;
       boost::mutex guv_mutex_;
-
-      tf2::Vector3 origin_corr; //Used to correct the origin, data from LIDAR ICP
-      tf2::Vector3 error_int; //Error integrator of tracking PI controller
-      double tracking_kp;
-      double tracking_ki; //PI controller parameter for tracking the origin
 
       int pos_buffer_num;
       geometry_msgs::PoseStamped pos_buffer[POS_BUFFER_SIZE];
