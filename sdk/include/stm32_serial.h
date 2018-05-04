@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ros/ros.h"
+#include "geometry_msgs/PoseStamped.h"
 
 #include "rptypes.h"
 
@@ -48,7 +49,8 @@ public:
   u_result start_rx(_u32 timeout);
   u_result grabPacket(stm32_serial_packet_t * nodebuffer, size_t & count, _u32 timeout);
 
-  void publish_pos_msg(ros::Publisher *pub, stm32_serial_packet_t *node, std::string frame_id);
+  void publish_pos_msg(ros::Publisher *pub, ros::Publisher *corr_pub, 
+    stm32_serial_packet_t *node, std::string frame_id);
 
 protected:
   bool                _isConnected;

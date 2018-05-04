@@ -35,7 +35,6 @@
 #include "ros/ros.h"
 
 #include "rplidar_3d/stm32_cmd.h"
-#include "geometry_msgs/PoseStamped.h"
 #include "stm32_serial.h"
 #include "rptypes.h"
 
@@ -45,12 +44,14 @@
 
 static stm32_serial* serial;
 static bool icp_inited = false;
+static geometry_msgs::PoseStamped pos_corr;
 
 /**
   * TODO: Modify stm32 to transmit quaternion
   *       call this function to publish attitude data
   */
-void stm32_serial::publish_pos_msg(ros::Publisher *pub, stm32_serial_packet_t *node, std::string frame_id)
+void stm32_serial::publish_pos_msg(ros::Publisher *pub, ros::Publisher *corr_pub,
+  stm32_serial_packet_t *node, std::string frame_id)
 {
     geometry_msgs::PoseStamped pos_msg;
 
@@ -91,6 +92,30 @@ void stm32_serial::publish_pos_msg(ros::Publisher *pub, stm32_serial_packet_t *n
     pos_msg.pose.orientation.w = (double)(q1.w());
 
     pub->publish(pos_msg);
+
+    if(icp_inited)
+    {
+      geometry_msgs::PoseStamped real_pos_msg;
+
+      real_pos_msg.header.stamp = ros::Time::now();
+      real_pos_msg.header.frame_id = "PCL2_frame";
+      tf2::Quaternion qCorr(pos_msg.pose.orientation.x, pos_msg.pose.orientation.y,
+         pos_msg.pose.orientation.z, pos_msg.pose.orientation.w);
+      q1 *= qCorr;
+
+      real_pos_msg.pose.position.x = node->wheel_odeometry[1]
+        + pos_corr.pose.position.x;
+      real_pos_msg.pose.position.y = node->wheel_odeometry[0]
+        + pos_corr.pose.position.y;
+      real_pos_msg.pose.position.z = 0;
+
+      real_pos_msg.pose.orientation.x = (double)(q1.x());
+      real_pos_msg.pose.orientation.y = (double)(q1.y());
+      real_pos_msg.pose.orientation.z = (double)(q1.z());
+      real_pos_msg.pose.orientation.w = (double)(q1.w());
+
+      corr_pub->publish(real_pos_msg);
+    }
 }
 
 #define STEPPER_MAX_SPEED 8*M_PI
@@ -112,6 +137,14 @@ void pos_corr_callback(geometry_msgs::PoseStamped::ConstPtr pos)
   }
   else
   {
+    pos_corr.pose.position.x = pos->pose.position.x;
+    pos_corr.pose.position.y = pos->pose.position.y;
+
+    pos_corr.pose.orientation.w = pos->pose.orientation.w;
+    pos_corr.pose.orientation.x = pos->pose.orientation.x;
+    pos_corr.pose.orientation.y = pos->pose.orientation.y;
+    pos_corr.pose.orientation.z = pos->pose.orientation.z;
+
     static double prev_gyro_error = 0;
     static ros::Time prev;
 
@@ -151,6 +184,7 @@ int main(int argc, char * argv[])
     ros::NodeHandle nh;
     ros::NodeHandle nh_private("~");
     ros::Publisher  pos_pub = nh.advertise<geometry_msgs::PoseStamped>("/lidar_pos", 200);
+    ros::Publisher  real_pos_pub = nh.advertise<geometry_msgs::PoseStamped>("/real_pos", 200);
 
     std::string sub_pos_topic;
     nh.param<std::string>("Corr_pos_topic", sub_pos_topic, "/corr_pos");
@@ -231,7 +265,7 @@ int main(int argc, char * argv[])
         //printf("Y: %f\tX: %f\n", nodes[0].wheel_odeometry[0], nodes[0].wheel_odeometry[1]);
         //printf("stepper: %f\n", nodes[0].stepper_angle * 180/M_PI);
     //    printf("yaw:%f\n", yaw);
-        serial->publish_pos_msg(&pos_pub, nodes, "PCL2_frame");
+        serial->publish_pos_msg(&pos_pub, &real_pos_pub, nodes, "PCL2_frame");
 
         r.sleep();
         ros::spinOnce();

@@ -97,7 +97,7 @@ void ICP_Align::cloud_callback(const sensor_msgs::PointCloud2::ConstPtr& cloud_i
       tf3d.getRotation(tfqt);
 
       tf2::Vector3 new_error;
-      new_error.setValue(dX, dY, dZ);
+      new_error.setValue(dX, dY, 0); //Only consider moving in ground XY plane now
 
       pos_error += new_error * 0.25;
 
